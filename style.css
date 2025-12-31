@@ -1,0 +1,18 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+
+.draggable-item { 
+    cursor: grab; 
+    transition: background-color 0.2s, transform 0.1s; 
+}
+.draggable-item:active { 
+    cursor: grabbing; 
+    background-color: #e5e7eb; 
+    transform: scale(0.98);
+}
+.hidden { display: none !important; }
+@keyframes heartbeat {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+.heart-pulse { animation: heartbeat 1.5s infinite; }
