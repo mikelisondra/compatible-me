@@ -28,6 +28,8 @@ let myId = localStorage.getItem('pid') || Math.random().toString(36).substr(2,9)
 localStorage.setItem('pid', myId);
 let settings = { mode: '1v1', type: 'ranking', diff: 'casual', target: 90 };
 let timerInterval = null;
+let currentEditRound = 1;
+let customDeckData = []; 
 
 const CONTENT = {
     ranking: {
@@ -61,7 +63,7 @@ async function initGame() {
 }
 initGame();
 
-// UI HELPERS
+// UI NAVIGATION
 window.goToHost = () => {
     const name = document.getElementById('username').value;
     if(!name) return alert("Please enter your name first!");
@@ -85,11 +87,15 @@ window.goBack = () => {
     playSound('click');
 };
 
+window.reloadGame = () => {
+    playSound('click');
+    setTimeout(() => { location.reload(); }, 200);
+};
+
+// AUDIO & SETTINGS HELPERS
 window.toggleMute = () => {
-    // Play CLICK sound even when toggling mute
     audio.click.currentTime = 0;
     audio.click.play().catch(e=>{});
-
     isMuted = !isMuted;
     const btn = document.getElementById('mute-btn');
     if(isMuted) { 
@@ -100,14 +106,6 @@ window.toggleMute = () => {
         btn.innerText = "🔊 Sound On"; 
         audioStarted = true;
     }
-};
-
-window.reloadGame = () => {
-    playSound('click');
-    // Wait 200ms for sound to play, then reload
-    setTimeout(() => {
-        location.reload();
-    }, 200);
 };
 
 window.playSound = (k) => {
@@ -141,33 +139,151 @@ window.setDiff = (d) => {
     playSound('click');
 };
 
+// SLIDER EDITOR LOGIC
 window.toggleCustomInputs = () => {
     const src = document.getElementById('topic-source').value;
-    const type = document.getElementById('game-type').value;
     const box = document.getElementById('custom-inputs');
+    const rounds = parseInt(document.getElementById('round-setting').value);
+
     if(src === 'custom') {
         box.classList.remove('hidden');
-        document.getElementById('item-5').style.display = type === 'ranking' ? 'block' : 'none';
-    } else box.classList.add('hidden');
+        currentEditRound = 1;
+        customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
+        renderSlide();
+    } else {
+        box.classList.add('hidden');
+    }
     playSound('click');
 };
 
-// CORE LOGIC
+window.toggleLock = () => {
+    const locked = document.getElementById('slide-lock').checked;
+    const radios = document.querySelectorAll('.ans-radio');
+    const type = document.getElementById('game-type').value;
+
+    radios.forEach(r => {
+        if(locked && type === 'trivia') r.classList.remove('hidden');
+        else r.classList.add('hidden');
+    });
+};
+
+function renderSlide() {
+    const totalRounds = parseInt(document.getElementById('round-setting').value);
+    const type = document.getElementById('game-type').value;
+
+    document.getElementById('slide-counter').innerText = `ROUND ${currentEditRound} / ${totalRounds}`;
+    
+    const item5Cont = document.getElementById('cont-item-5');
+    if(type === 'ranking') {
+        item5Cont.classList.remove('hidden');
+        item5Cont.parentElement.classList.replace('grid-cols-1', 'grid-cols-2'); 
+    } else {
+        item5Cont.classList.add('hidden');
+        item5Cont.parentElement.classList.replace('grid-cols-2', 'grid-cols-1');
+    }
+
+    const data = customDeckData[currentEditRound - 1];
+    document.getElementById('slide-q').value = data.q;
+    
+    const inputs = document.querySelectorAll('.slide-item');
+    inputs.forEach((input, index) => {
+        input.value = data.items[index] || "";
+    });
+
+    document.getElementById('slide-lock').checked = (data.lockedIdx !== null);
+    
+    const radios = document.querySelectorAll('.ans-radio');
+    radios.forEach(r => {
+        r.checked = (parseInt(r.value) === data.lockedIdx);
+    });
+    toggleLock();
+
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    btnPrev.disabled = (currentEditRound === 1);
+    
+    if(currentEditRound === totalRounds) {
+        btnNext.innerText = "✅ FINISH";
+        btnNext.classList.replace('bg-indigo-600', 'bg-green-500');
+    } else {
+        btnNext.innerText = "NEXT ➡";
+        btnNext.classList.replace('bg-green-500', 'bg-indigo-600');
+    }
+}
+
+window.nextSlide = () => {
+    saveCurrentSlide();
+    const totalRounds = parseInt(document.getElementById('round-setting').value);
+
+    if (currentEditRound < totalRounds) {
+        currentEditRound++;
+        renderSlide();
+        playSound('click');
+    } else {
+        playSound('win');
+        alert("All rounds set! Click 'Create Room' to start.");
+    }
+};
+
+window.prevSlide = () => {
+    saveCurrentSlide();
+    if (currentEditRound > 1) {
+        currentEditRound--;
+        renderSlide();
+        playSound('click');
+    }
+};
+
+function saveCurrentSlide() {
+    const q = document.getElementById('slide-q').value;
+    const inputs = document.querySelectorAll('.slide-item');
+    const items = Array.from(inputs).map(i => i.value);
+    
+    let lockedIdx = null;
+    if(document.getElementById('slide-lock').checked) {
+        const checked = document.querySelector('input[name="correct-ans"]:checked');
+        if(checked) lockedIdx = parseInt(checked.value);
+        if(document.getElementById('game-type').value === 'ranking') lockedIdx = -1;
+    }
+
+    customDeckData[currentEditRound - 1] = { q: q, items: items, lockedIdx: lockedIdx };
+}
+
+// CORE GAME LOGIC
 window.createGame = () => {
     if(!db) return alert("Database Offline.");
     playSound('click');
     
+    if(document.getElementById('topic-source').value === 'custom') saveCurrentSlide();
+
     myName = document.getElementById('username').value;
-    
     myRoom = Math.random().toString(36).substring(2,6).toUpperCase();
     settings.type = document.getElementById('game-type').value;
     settings.target = document.getElementById('target-slider').value;
     
     const maxRounds = parseInt(document.getElementById('round-setting').value);
     const timeLimit = parseInt(document.getElementById('timer-setting').value);
+    const src = document.getElementById('topic-source').value;
 
-    const rData = generateRoundData(settings.type, document.getElementById('topic-source').value);
-    if(!rData) return;
+    let gameDeck = [];
+
+    if (src === 'custom') {
+        for(let i=0; i<maxRounds; i++) {
+            const data = customDeckData[i];
+            const validItems = data.items.filter(item => item.trim() !== "");
+            
+            if(!data.q || validItems.length < 2) {
+                currentEditRound = i + 1;
+                renderSlide();
+                return alert(`Round ${i+1} is incomplete! Please add a question and at least 2 options.`);
+            }
+            gameDeck.push({ q: data.q, items: validItems, lockedIdx: data.lockedIdx });
+        }
+    } else {
+        for(let i=0; i<maxRounds; i++) {
+            gameDeck.push(generateRandomRound(settings.type));
+        }
+    }
 
     set(ref(db, `games/${myRoom}`), {
         host: myName,
@@ -178,7 +294,8 @@ window.createGame = () => {
         maxRounds: maxRounds,
         currRound: 1,
         timeLimit: timeLimit,
-        roundData: rData,
+        gameDeck: gameDeck,
+        roundData: gameDeck[0],
         state: 'lobby',
         players: { [myId]: { name: myName, score: 0 } }
     });
@@ -201,22 +318,15 @@ window.joinGame = () => {
     });
 };
 
-function generateRoundData(type, src) {
+function generateRandomRound(type) {
     let rData = {};
-    if(src === 'custom') {
-        const q = document.getElementById('custom-q').value;
-        const items = Array.from(document.querySelectorAll('.custom-item')).map(i => i.value).filter(v => v);
-        if(!q || items.length < 2) { alert("Fill in fields!"); return null; }
-        rData = { q: q, items: items };
+    if(type === 'ranking') {
+        const keys = Object.keys(CONTENT.ranking);
+        const k = keys[Math.floor(Math.random()*keys.length)];
+        rData = { q: `Rank these ${k}`, items: CONTENT.ranking[k] };
     } else {
-        if(type === 'ranking') {
-            const keys = Object.keys(CONTENT.ranking);
-            const k = keys[Math.floor(Math.random()*keys.length)];
-            rData = { q: `Rank these ${k}`, items: CONTENT.ranking[k] };
-        } else {
-            const t = CONTENT.trivia[Math.floor(Math.random()*CONTENT.trivia.length)];
-            rData = { q: t.q, items: t.opts };
-        }
+        const t = CONTENT.trivia[Math.floor(Math.random()*CONTENT.trivia.length)];
+        rData = { q: t.q, items: t.opts };
     }
     return rData;
 }
@@ -315,6 +425,24 @@ function startGameUI(data) {
             tGrid.appendChild(btn);
         });
     }
+
+    if(isHost && data.roundData.lockedIdx !== undefined && data.roundData.lockedIdx !== null) {
+        document.getElementById('status-msg').innerText = "Answer Pre-locked (Auto-playing...)";
+        document.getElementById('submit-btn').classList.add('hidden'); 
+        
+        let autoVal;
+        
+        if(data.type === 'ranking') {
+            autoVal = data.roundData.items; 
+        } else {
+            autoVal = [ data.roundData.items[data.roundData.lockedIdx] ];
+        }
+
+        setTimeout(() => {
+            update(ref(db, `games/${myRoom}/answers/${myId}`), { val: autoVal });
+            checkCompletion();
+        }, 1000);
+    }
 }
 
 window.submitAnswer = (tAns = null, btn = null, forced = false) => {
@@ -373,8 +501,8 @@ function checkCompletion() {
             if (d.currRound < d.maxRounds) {
                 updates['currRound'] = d.currRound + 1;
                 updates['answers'] = null;
-                const newData = generateRoundData(d.type, 'random');
-                updates['roundData'] = newData;
+                const nextRoundData = d.gameDeck[d.currRound]; 
+                updates['roundData'] = nextRoundData;
                 update(ref(db, `games/${myRoom}`), updates);
             } else {
                 updates['state'] = 'finished';
