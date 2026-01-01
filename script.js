@@ -1,13 +1,21 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
-// Audio System
+// AUDIO SYSTEM
+const bgmTracks = [
+    'sounds/bgm.mp3', 
+    'sounds/bgm2.mp3'
+];
+
+const randomTrack = bgmTracks[Math.floor(Math.random() * bgmTracks.length)];
+
 const audio = {
-    bgm: new Audio('sounds/bgm.mp3'),
+    bgm: new Audio(randomTrack),
     click: new Audio('sounds/click.mp3'),
     win: new Audio('sounds/win.mp3'),
     fail: new Audio('sounds/fail.mp3')
 };
+
 audio.bgm.loop = true; 
 audio.bgm.volume = 0.3;
 let isMuted = false;
