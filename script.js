@@ -94,6 +94,26 @@ window.reloadGame = () => {
     setTimeout(() => { location.reload(); }, 200);
 };
 
+window.swapRoles = () => {
+    playSound('click');
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('res-final').classList.add('hidden');
+    
+    // Clear old data references
+    document.getElementById('res-1v1').classList.add('hidden');
+    document.getElementById('res-party').classList.add('hidden');
+
+    if(isHost) {
+        // Was Host -> Become Guest
+        isHost = false; 
+        document.getElementById('guest-panel').classList.remove('hidden');
+        document.getElementById('room-code').value = ""; 
+    } else {
+        // Was Guest -> Become Host
+        document.getElementById('host-panel').classList.remove('hidden');
+    }
+};
+
 // Audio & Settings Helpers
 window.toggleMute = () => {
     audio.click.currentTime = 0;
@@ -574,18 +594,28 @@ function showResults(data) {
     players.sort((a,b) => b.score - a.score);
     const topScore = players[0] ? players[0].score : 0;
 
-    if(data.diff === 'standard' && topScore < data.target) playSound('fail');
-    else playSound('win');
+    if((data.diff === 'standard' && topScore < data.target) || topScore < 25) {
+        playSound('fail');
+    } else {
+        playSound('win');
+    }
 
     if(data.mode === '1v1') {
         document.getElementById('res-1v1').classList.remove('hidden');
         const el = document.getElementById('score-1v1');
         el.innerText = topScore + "%";
+        
         let msg = topScore > 80 ? "Perfect Match!" : "Keep Trying!";
         if(data.diff === 'standard') {
             msg = topScore >= data.target ? "PASSED!" : "FAILED!";
-            el.className = topScore >= data.target ? "text-8xl font-black text-green-600 mb-2" : "text-8xl font-black text-red-500 mb-2";
         }
+        
+        if ((data.diff === 'standard' && topScore < data.target) || topScore < 25) {
+            el.className = "text-8xl font-black text-red-500 mb-2"; 
+        } else {
+            el.className = "text-8xl font-black text-green-600 mb-2"; 
+        }
+        
         document.getElementById('msg-1v1').innerText = msg;
     } else {
         document.getElementById('res-party').classList.remove('hidden');
