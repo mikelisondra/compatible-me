@@ -2,11 +2,7 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebas
 import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
 // AUDIO SYSTEM
-const bgmTracks = [
-    'sounds/bgm.mp3', 
-    'sounds/bgm2.mp3'
-];
-
+const bgmTracks = ['sounds/bgm.mp3', 'sounds/bgm2.mp3'];
 const randomTrack = bgmTracks[Math.floor(Math.random() * bgmTracks.length)];
 
 const audio = {
@@ -15,7 +11,6 @@ const audio = {
     win: new Audio('sounds/win.mp3'),
     fail: new Audio('sounds/fail.mp3')
 };
-
 audio.bgm.loop = true; 
 audio.bgm.volume = 0.3;
 let isMuted = false;
@@ -23,13 +18,11 @@ let audioStarted = false;
 
 document.addEventListener('click', () => {
     if (!audioStarted && !isMuted) {
-        audio.bgm.play().then(() => {
-            audioStarted = true;
-        }).catch(e => console.log("Waiting for interaction..."));
+        audio.bgm.play().then(() => audioStarted = true).catch(e => {});
     }
 }, { once: true });
 
-// Global Variables
+// GLOBAL VARIABLES
 let app, db;
 let myName, myRoom, isHost = false;
 let myId = localStorage.getItem('pid') || Math.random().toString(36).substr(2,9);
@@ -39,7 +32,8 @@ let timerInterval = null;
 let currentEditRound = 1;
 let customDeckData = []; 
 let setupSortable = null;
-let currentRenderedRound = 0; // Prevents re-shuffling mid-round
+let currentRenderedRound = 0;
+let guestHasStartedRound = false; 
 
 const CONTENT = {
     ranking: {
@@ -57,26 +51,23 @@ const CONTENT = {
     ]
 };
 
-// Initialization
+// INITIALIZATION
 async function initGame() {
     try {
         const response = await fetch('/api/keys');
         if (!response.ok) throw new Error("Could not fetch keys");
         const config = await response.json();
-        
         app = initializeApp(config);
         db = getDatabase(app);
         console.log("Game Connected!");
-    } catch (error) {
-        console.warn("DATABASE OFFLINE (Local Mode).");
-    }
+    } catch (error) { console.warn("DB Offline"); }
 }
 initGame();
 
-// UI Navigation
+// UI NAVIGATION
 window.goToHost = () => {
     const name = document.getElementById('username').value;
-    if(!name) return alert("Please enter your name first!");
+    if(!name) return alert("Enter Name");
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('host-panel').classList.remove('hidden');
     playSound('click');
@@ -84,7 +75,7 @@ window.goToHost = () => {
 
 window.goToGuest = () => {
     const name = document.getElementById('username').value;
-    if(!name) return alert("Please enter your name first!");
+    if(!name) return alert("Enter Name");
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('guest-panel').classList.remove('hidden');
     playSound('click');
@@ -106,57 +97,39 @@ window.swapRoles = () => {
     playSound('click');
     document.getElementById('result-screen').classList.add('hidden');
     document.getElementById('res-final').classList.add('hidden');
-    
-    // Clear old data references
     document.getElementById('res-1v1').classList.add('hidden');
     document.getElementById('res-party').classList.add('hidden');
 
     if(isHost) {
-        // Was Host -> Become Guest
         isHost = false; 
         document.getElementById('guest-panel').classList.remove('hidden');
         document.getElementById('room-code').value = ""; 
     } else {
-        // Was Guest -> Become Host
         document.getElementById('host-panel').classList.remove('hidden');
     }
 };
 
-// Audio & Settings Helpers
 window.toggleMute = () => {
-    audio.click.currentTime = 0;
-    audio.click.play().catch(e=>{});
     isMuted = !isMuted;
     const btn = document.getElementById('mute-btn');
-    if(isMuted) { 
-        audio.bgm.pause(); 
-        btn.innerText = "🔇 Muted"; 
-    } else { 
-        audio.bgm.play().catch(e=>{}); 
-        btn.innerText = "🔊 Sound On"; 
-        audioStarted = true;
-    }
+    if(isMuted) { audio.bgm.pause(); btn.innerText = "🔇 Muted"; } 
+    else { audio.bgm.play().catch(e=>{}); btn.innerText = "🔊 Sound On"; audioStarted = true; }
 };
 
 window.playSound = (k) => {
-    if(isMuted) return;
-    if(k !== 'bgm') audio[k].currentTime = 0;
-    audio[k].play().catch(e => {});
+    if(!isMuted && audio[k]) { audio[k].currentTime = 0; audio[k].play().catch(e=>{}); }
 };
 
 window.selectMode = (m) => {
     settings.mode = m;
     const b1 = document.getElementById('btn-1v1');
     const bP = document.getElementById('btn-party');
-    const active = "border-indigo-600 bg-indigo-50 text-indigo-700";
-    const inactive = "border-gray-200 text-gray-400";
-    
     if(m==='1v1') {
-        b1.className = `mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition ${active}`;
-        bP.className = `mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition ${inactive}`;
+        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-indigo-600 bg-indigo-50 text-indigo-700";
+        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-gray-200 text-gray-400";
     } else {
-        bP.className = `mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition ${active}`;
-        b1.className = `mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition ${inactive}`;
+        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-indigo-600 bg-indigo-50 text-indigo-700";
+        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-gray-200 text-gray-400";
     }
     playSound('click');
 };
@@ -164,12 +137,10 @@ window.selectMode = (m) => {
 window.setDiff = (d) => {
     settings.diff = d;
     const box = document.getElementById('slider-box');
-    if(d === 'casual') box.classList.add('hidden');
-    else box.classList.remove('hidden');
+    if(d === 'casual') box.classList.add('hidden'); else box.classList.remove('hidden');
     playSound('click');
 };
 
-// Slider Editor Logic
 window.toggleCustomInputs = () => {
     const src = document.getElementById('topic-source').value;
     const box = document.getElementById('custom-inputs');
@@ -178,17 +149,11 @@ window.toggleCustomInputs = () => {
     if(src === 'custom') {
         box.classList.remove('hidden');
         currentEditRound = 1;
-
         if(!setupSortable) {
             setupSortable = new Sortable(document.getElementById('setup-list'), {
-                animation: 150,
-                handle: '.drag-handle',
-                ghostClass: 'bg-indigo-50',
-                delay: 100, 
-                delayOnTouchOnly: true
+                animation: 150, handle: '.drag-handle', ghostClass: 'bg-indigo-50', delay: 100, delayOnTouchOnly: true
             });
         }
-
         customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
         renderSlide();
     } else {
@@ -204,28 +169,21 @@ window.toggleLock = () => {
     const type = document.getElementById('game-type').value;
 
     radios.forEach(r => {
-        if(locked && type === 'trivia') r.classList.remove('hidden');
-        else r.classList.add('hidden');
+        if(locked && type === 'trivia') r.classList.remove('hidden'); else r.classList.add('hidden');
     });
-
     inputs.forEach(input => {
-        if(locked) {
-            input.disabled = true;
-            input.classList.add('text-gray-400', 'cursor-not-allowed');
-        } else {
-            input.disabled = false;
-            input.classList.remove('text-gray-400', 'cursor-not-allowed');
-        }
+        input.disabled = locked;
+        if(locked) input.classList.add('text-gray-400', 'cursor-not-allowed');
+        else input.classList.remove('text-gray-400', 'cursor-not-allowed');
     });
 };
 
 function renderSlide() {
     const totalRounds = parseInt(document.getElementById('round-setting').value);
     const type = document.getElementById('game-type').value;
-
     document.getElementById('slide-counter').innerText = `ROUND ${currentEditRound} / ${totalRounds}`;
-    
     const item5Cont = document.getElementById('cont-item-5');
+    
     if(type === 'ranking') {
         item5Cont.classList.remove('hidden');
         item5Cont.parentElement.classList.replace('grid-cols-1', 'grid-cols-2'); 
@@ -236,18 +194,12 @@ function renderSlide() {
 
     const data = customDeckData[currentEditRound - 1];
     document.getElementById('slide-q').value = data.q;
-    
     const inputs = document.querySelectorAll('.slide-item');
-    inputs.forEach((input, index) => {
-        input.value = data.items[index] || "";
-    });
-
+    inputs.forEach((input, index) => { input.value = data.items[index] || ""; });
     document.getElementById('slide-lock').checked = (data.lockedIdx !== null);
     
     const radios = document.querySelectorAll('.ans-radio');
-    radios.forEach(r => {
-        r.checked = (parseInt(r.value) === data.lockedIdx);
-    });
+    radios.forEach(r => { r.checked = (parseInt(r.value) === data.lockedIdx); });
     toggleLock();
 
     const btnPrev = document.getElementById('btn-prev');
@@ -255,57 +207,40 @@ function renderSlide() {
     btnPrev.disabled = (currentEditRound === 1);
     
     if(currentEditRound === totalRounds) {
-        btnNext.innerText = "✅ FINISH";
-        btnNext.classList.replace('bg-indigo-600', 'bg-green-500');
+        btnNext.innerText = "✅ FINISH"; btnNext.classList.replace('bg-indigo-600', 'bg-green-500');
     } else {
-        btnNext.innerText = "NEXT ➡";
-        btnNext.classList.replace('bg-green-500', 'bg-indigo-600');
+        btnNext.innerText = "NEXT ➡"; btnNext.classList.replace('bg-green-500', 'bg-indigo-600');
     }
 }
 
 window.nextSlide = () => {
     saveCurrentSlide();
     const totalRounds = parseInt(document.getElementById('round-setting').value);
-
-    if (currentEditRound < totalRounds) {
-        currentEditRound++;
-        renderSlide();
-        playSound('click');
-    } else {
-        playSound('win');
-        alert("All rounds set! Click 'Create Room' to start.");
-    }
+    if (currentEditRound < totalRounds) { currentEditRound++; renderSlide(); playSound('click'); } 
+    else { playSound('win'); alert("All rounds set! Click 'Create Room' to start."); }
 };
 
 window.prevSlide = () => {
     saveCurrentSlide();
-    if (currentEditRound > 1) {
-        currentEditRound--;
-        renderSlide();
-        playSound('click');
-    }
+    if (currentEditRound > 1) { currentEditRound--; renderSlide(); playSound('click'); }
 };
 
 function saveCurrentSlide() {
     const q = document.getElementById('slide-q').value;
     const inputs = document.querySelectorAll('.slide-item');
     const items = Array.from(inputs).map(i => i.value);
-    
     let lockedIdx = null;
     if(document.getElementById('slide-lock').checked) {
         const checked = document.querySelector('input[name="correct-ans"]:checked');
         if(checked) lockedIdx = parseInt(checked.value);
         if(document.getElementById('game-type').value === 'ranking') lockedIdx = -1;
     }
-
     customDeckData[currentEditRound - 1] = { q: q, items: items, lockedIdx: lockedIdx };
 }
 
-// Core Game Logic
 window.createGame = () => {
     if(!db) return alert("Database Offline.");
     playSound('click');
-    
     if(document.getElementById('topic-source').value === 'custom') saveCurrentSlide();
 
     myName = document.getElementById('username').value;
@@ -314,44 +249,31 @@ window.createGame = () => {
     settings.target = document.getElementById('target-slider').value;
     
     const simpleMode = document.getElementById('simple-mode').checked;
+    const syncMode = document.getElementById('sync-mode').checked; 
     const maxRounds = parseInt(document.getElementById('round-setting').value);
     const timeLimit = parseInt(document.getElementById('timer-setting').value);
     const src = document.getElementById('topic-source').value;
 
     let gameDeck = [];
-
     if (src === 'custom') {
         for(let i=0; i<maxRounds; i++) {
             const data = customDeckData[i];
             const validItems = data.items.filter(item => item.trim() !== "");
-            
             if(!data.q || validItems.length < 2) {
-                currentEditRound = i + 1;
-                renderSlide();
-                return alert(`Round ${i+1} is incomplete! Please add a question and at least 2 options.`);
+                currentEditRound = i + 1; renderSlide();
+                return alert(`Round ${i+1} incomplete!`);
             }
             gameDeck.push({ q: data.q, items: validItems, lockedIdx: data.lockedIdx });
         }
     } else {
-        for(let i=0; i<maxRounds; i++) {
-            gameDeck.push(generateRandomRound(settings.type));
-        }
+        for(let i=0; i<maxRounds; i++) { gameDeck.push(generateRandomRound(settings.type)); }
     }
 
     set(ref(db, `games/${myRoom}`), {
-        host: myName,
-        mode: settings.mode,
-        diff: settings.diff,
-        type: settings.type,
-        target: settings.target,
-        simpleMode: simpleMode,
-        maxRounds: maxRounds,
-        currRound: 1,
-        timeLimit: timeLimit,
-        gameDeck: gameDeck,
-        roundData: gameDeck[0],
-        state: 'lobby',
-        players: { [myId]: { name: myName, score: 0 } }
+        host: myName, mode: settings.mode, diff: settings.diff, type: settings.type,
+        target: settings.target, simpleMode: simpleMode, syncMode: syncMode, 
+        maxRounds: maxRounds, currRound: 1, timeLimit: timeLimit, gameDeck: gameDeck, 
+        roundData: gameDeck[0], state: 'lobby', players: { [myId]: { name: myName, score: 0 } }
     });
     isHost = true;
     enterLobby();
@@ -366,6 +288,12 @@ window.joinGame = () => {
 
     get(ref(db, `games/${myRoom}`)).then(snap => {
         if(snap.exists()) {
+            const d = snap.val();
+            // Security Fixes
+            if (d.state !== 'lobby') return alert("Game already in progress!");
+            const pCount = Object.keys(d.players || {}).length;
+            if (d.mode === '1v1' && pCount >= 2) return alert("Room is full! (1v1 Mode)");
+
             update(ref(db, `games/${myRoom}/players/${myId}`), { name: myName, score: 0 });
             enterLobby();
         } else alert("Room not found!");
@@ -373,23 +301,20 @@ window.joinGame = () => {
 };
 
 function generateRandomRound(type) {
-    let rData = {};
     if(type === 'ranking') {
         const keys = Object.keys(CONTENT.ranking);
         const k = keys[Math.floor(Math.random()*keys.length)];
-        rData = { q: `Rank these ${k}`, items: CONTENT.ranking[k] };
+        return { q: `Rank these ${k}`, items: CONTENT.ranking[k] };
     } else {
         const t = CONTENT.trivia[Math.floor(Math.random()*CONTENT.trivia.length)];
-        rData = { q: t.q, items: t.opts };
+        return { q: t.q, items: t.opts };
     }
-    return rData;
 }
 
 function enterLobby() {
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
-    
     document.getElementById('lobby-screen').classList.remove('hidden');
     document.getElementById('display-code').innerText = myRoom;
 
@@ -404,16 +329,24 @@ function enterLobby() {
                 <span class="font-bold">${p.name}</span>
                 <span class="ml-auto font-mono text-gray-400">${p.score}%</span>
             </li>`).join('');
-        
         document.getElementById('lobby-tag').innerText = `${data.mode} • ${data.maxRounds} Rnds`;
 
         if(isHost) document.getElementById('start-btn').classList.remove('hidden');
         
         if(data.state === 'playing') {
-            // Only update UI if we moved to a new round
             if (currentRenderedRound !== data.currRound) {
                 currentRenderedRound = data.currRound;
+                guestHasStartedRound = false; 
                 startGameUI(data);
+            }
+            
+            // Logic for Sync Mode: Wait for host answer
+            if (!isHost && !guestHasStartedRound && data.syncMode) {
+                const hostId = Object.keys(data.players).find(k => data.players[k].name === data.host);
+                if (data.answers && data.answers[hostId]) {
+                    guestHasStartedRound = true;
+                    revealGuestUI(data);
+                }
             }
         }
         
@@ -435,6 +368,80 @@ function startGameUI(data) {
     document.getElementById('submit-btn').classList.remove('hidden');
     document.getElementById('status-msg').innerText = "";
 
+    const rList = document.getElementById('sortable-list');
+    const tGrid = document.getElementById('trivia-grid');
+    const submitBtn = document.getElementById('submit-btn');
+    const timerBox = document.getElementById('timer-box');
+
+    let text = "";
+    if (isHost) {
+        text = (data.type === 'ranking' ? "Rank YOUR Favorites" : `Select: ${data.roundData.q}`);
+        submitBtn.classList.remove('hidden');
+        renderGameInputs(data, rList, tGrid);
+    } else {
+        if (data.simpleMode) text = data.roundData.q;
+        else text = (data.type === 'ranking' ? `Guess ${data.host}'s Order` : `Guess ${data.host}'s Answer: ${data.roundData.q}`);
+        
+        document.getElementById('q-text').innerText = text;
+        
+        // Sync Mode Check
+        if(data.syncMode) {
+            // Wait for host
+            rList.classList.add('hidden');
+            tGrid.classList.add('hidden');
+            submitBtn.classList.add('hidden');
+            timerBox.classList.add('hidden');
+            document.getElementById('status-msg').innerText = "Waiting for Host to lock answer...";
+            return; 
+        } else {
+            // Start immediately
+            guestHasStartedRound = true; 
+            revealGuestUI(data); 
+        }
+    }
+    document.getElementById('q-text').innerText = text;
+}
+
+function revealGuestUI(data) {
+    const rList = document.getElementById('sortable-list');
+    const tGrid = document.getElementById('trivia-grid');
+    const submitBtn = document.getElementById('submit-btn');
+    
+    document.getElementById('status-msg').innerText = "";
+    submitBtn.classList.remove('hidden');
+    
+    renderGameInputs(data, rList, tGrid);
+    startTimer(data); 
+}
+
+function renderGameInputs(data, rList, tGrid) {
+    if(data.type === 'ranking') {
+        rList.classList.remove('hidden'); tGrid.classList.add('hidden'); rList.innerHTML = "";
+        let items = [...data.roundData.items];
+        if(!isHost) items.sort(() => Math.random() - 0.5); 
+        
+        items.forEach(i => {
+            const li = document.createElement('li');
+            li.className = "draggable-item bg-white border-2 border-gray-100 p-4 rounded-xl shadow-sm flex justify-between font-bold text-gray-700";
+            li.innerHTML = `<span>${i}</span><span class="text-gray-300">☰</span>`;
+            li.dataset.value = i;
+            li.onmousedown = () => playSound('click');
+            rList.appendChild(li);
+        });
+        new Sortable(rList, { animation: 150, delay: 150, delayOnTouchOnly: true });
+    } else {
+        tGrid.classList.remove('hidden'); rList.classList.add('hidden'); tGrid.innerHTML = "";
+        data.roundData.items.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = "w-full bg-white border-2 border-gray-100 p-6 rounded-xl font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-600 transition text-gray-700";
+            btn.innerText = opt;
+            btn.onclick = () => { playSound('click'); submitAnswer(opt, btn); };
+            tGrid.appendChild(btn);
+        });
+    }
+}
+
+function startTimer(data) {
     clearInterval(timerInterval);
     const tBox = document.getElementById('timer-box');
     const tVal = document.getElementById('timer-val'); 
@@ -448,7 +455,6 @@ function startGameUI(data) {
             timeLeft--;
             tVal.innerText = timeLeft;
             if (timeLeft <= 5) playSound('click');
-            
             if (timeLeft <= 0) {
                 clearInterval(timerInterval);
                 submitAnswer(null, null, true);
@@ -457,83 +463,15 @@ function startGameUI(data) {
     } else {
         tBox.classList.add('hidden');
     }
-
-    let text = "";
-    if (isHost) {
-        text = (data.type === 'ranking' ? "Rank YOUR Favorites" : `Select: ${data.roundData.q}`);
-    } else {
-        if (data.simpleMode) {
-            text = data.roundData.q;
-        } else {
-            text = (data.type === 'ranking' 
-                ? `Guess ${data.host}'s Order` 
-                : `Guess ${data.host}'s Answer: ${data.roundData.q}`);
-        }
-    }
-    document.getElementById('q-text').innerText = text;
-
-    const rList = document.getElementById('sortable-list');
-    const tGrid = document.getElementById('trivia-grid');
-
-    if(data.type === 'ranking') {
-        rList.classList.remove('hidden'); tGrid.classList.add('hidden'); rList.innerHTML = "";
-        let items = [...data.roundData.items].sort(() => Math.random() - 0.5);
-        items.forEach(i => {
-            const li = document.createElement('li');
-            li.className = "draggable-item bg-white border-2 border-gray-100 p-4 rounded-xl shadow-sm flex justify-between font-bold text-gray-700";
-            li.innerHTML = `<span>${i}</span><span class="text-gray-300">☰</span>`;
-            li.dataset.value = i;
-            li.onmousedown = () => playSound('click');
-            rList.appendChild(li);
-        });
-        
-        new Sortable(rList, { 
-            animation: 150,
-            delay: 150, 
-            delayOnTouchOnly: true
-        });
-
-    } else {
-        tGrid.classList.remove('hidden'); rList.classList.add('hidden'); tGrid.innerHTML = "";
-        data.roundData.items.forEach(opt => {
-            const btn = document.createElement('button');
-            btn.className = "w-full bg-white border-2 border-gray-100 p-6 rounded-xl font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-600 transition text-gray-700";
-            btn.innerText = opt;
-            btn.onclick = () => { playSound('click'); submitAnswer(opt, btn); };
-            tGrid.appendChild(btn);
-        });
-    }
-
-    if(isHost && data.roundData.lockedIdx !== undefined && data.roundData.lockedIdx !== null) {
-        document.getElementById('status-msg').innerText = "Answer Pre-locked (Auto-playing...)";
-        document.getElementById('submit-btn').classList.add('hidden'); 
-        
-        let autoVal;
-        
-        if(data.type === 'ranking') {
-            autoVal = data.roundData.items; 
-        } else {
-            autoVal = [ data.roundData.items[data.roundData.lockedIdx] ];
-        }
-
-        setTimeout(() => {
-            update(ref(db, `games/${myRoom}/answers/${myId}`), { val: autoVal });
-            checkCompletion();
-        }, 1000);
-    }
 }
 
 window.submitAnswer = (tAns = null, btn = null, forced = false) => {
     clearInterval(timerInterval);
-
     let val = tAns;
     if(!val) {
         const listItems = document.querySelectorAll('#sortable-list li');
-        if (listItems.length > 0) {
-            val = Array.from(listItems).map(i => i.dataset.value);
-        } else {
-            val = "SKIPPED";
-        }
+        if (listItems.length > 0) val = Array.from(listItems).map(i => i.dataset.value);
+        else val = "SKIPPED";
     }
     
     document.getElementById('status-msg').innerText = forced ? "⏰ TIME'S UP!" : "Locked In. Waiting...";
@@ -579,8 +517,7 @@ function checkCompletion() {
             if (d.currRound < d.maxRounds) {
                 updates['currRound'] = d.currRound + 1;
                 updates['answers'] = null;
-                const nextRoundData = d.gameDeck[d.currRound]; 
-                updates['roundData'] = nextRoundData;
+                updates['roundData'] = d.gameDeck[d.currRound]; 
                 update(ref(db, `games/${myRoom}`), updates);
             } else {
                 updates['state'] = 'finished';
@@ -602,7 +539,9 @@ function showResults(data) {
     players.sort((a,b) => b.score - a.score);
     const topScore = players[0] ? players[0].score : 0;
 
-    if((data.diff === 'standard' && topScore < data.target) || topScore < 25) {
+    const targetScore = parseInt(data.target) || 90;
+
+    if((data.diff === 'standard' && topScore < targetScore) || topScore < 25) {
         playSound('fail');
     } else {
         playSound('win');
@@ -614,22 +553,19 @@ function showResults(data) {
         el.innerText = topScore + "%";
         
         let msg = topScore > 80 ? "Perfect Match!" : "Keep Trying!";
-        if(data.diff === 'standard') {
-            msg = topScore >= data.target ? "PASSED!" : "FAILED!";
-        }
+        if(data.diff === 'standard') msg = topScore >= targetScore ? "PASSED!" : "FAILED!";
         
-        if ((data.diff === 'standard' && topScore < data.target) || topScore < 25) {
+        if ((data.diff === 'standard' && topScore < targetScore) || topScore < 25) {
             el.className = "text-8xl font-black text-red-500 mb-2"; 
         } else {
             el.className = "text-8xl font-black text-green-600 mb-2"; 
         }
-        
         document.getElementById('msg-1v1').innerText = msg;
     } else {
         document.getElementById('res-party').classList.remove('hidden');
         document.getElementById('leaderboard').innerHTML = players.map((p, i) => {
             let color = "text-gray-800";
-            if(data.diff === 'standard') color = p.score >= data.target ? "text-green-600" : "text-red-500";
+            if(data.diff === 'standard') color = p.score >= targetScore ? "text-green-600" : "text-red-500";
             return `<div class="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100"><span class="font-bold text-gray-600">#${i+1} ${p.name}</span><span class="font-black ${color} text-xl">${p.score}%</span></div>`;
         }).join('');
     }
