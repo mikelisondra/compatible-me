@@ -12,12 +12,38 @@
 
     <button id="mute-btn" onclick="toggleMute()" class="absolute top-4 right-4 bg-white shadow-md p-2 rounded-full text-xs font-bold z-50 hover:bg-gray-100 transition">🔊 Sound On</button>
 
-    <div class="w-full max-w-md p-6 bg-white rounded-xl shadow-2xl border-t-8 border-indigo-600">
+    <div class="w-full max-w-md p-6 bg-white rounded-xl shadow-2xl border-t-8 border-indigo-600 transition-all duration-300">
         <h1 class="text-4xl font-black text-center text-indigo-600 mb-1 tracking-tighter">Compatible Me<span class="text-sm align-top text-gray-400">.io</span></h1>
         
-        <div id="login-screen">
-            <input type="text" id="username" placeholder="Enter Your Name" class="w-full p-4 border-2 border-gray-200 rounded-xl mb-4 text-center font-bold text-lg focus:border-indigo-500 outline-none">
+        <div id="start-screen">
+            <p class="text-center text-gray-400 text-xs font-bold uppercase mb-6 tracking-widest">Social Sync Game</p>
             
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Nickname</label>
+            <input type="text" id="username" placeholder="Enter Your Name" class="w-full p-4 border-2 border-gray-200 rounded-xl mb-6 text-center font-bold text-lg focus:border-indigo-500 outline-none text-indigo-600">
+            
+            <div class="space-y-3">
+                <button onclick="goToHost()" class="w-full p-4 bg-indigo-50 border-2 border-indigo-100 rounded-xl flex items-center justify-between hover:bg-indigo-100 hover:border-indigo-300 transition group">
+                    <span class="text-left">
+                        <span class="block font-black text-indigo-700 text-lg">👑 HOST A GAME</span>
+                        <span class="block text-xs text-indigo-400 font-bold">Create room & settings</span>
+                    </span>
+                    <span class="text-2xl group-hover:scale-110 transition">➡️</span>
+                </button>
+
+                <button onclick="goToGuest()" class="w-full p-4 bg-white border-2 border-gray-200 rounded-xl flex items-center justify-between hover:bg-gray-50 hover:border-gray-300 transition group">
+                    <span class="text-left">
+                        <span class="block font-black text-gray-600 text-lg">👋 JOIN A ROOM</span>
+                        <span class="block text-xs text-gray-400 font-bold">Enter a code to play</span>
+                    </span>
+                    <span class="text-2xl group-hover:scale-110 transition">➡️</span>
+                </button>
+            </div>
+        </div>
+
+        <div id="host-panel" class="hidden">
+            <button onclick="goBack()" class="mb-4 text-xs font-bold text-gray-400 hover:text-gray-600 flex items-center gap-1">⬅ BACK</button>
+            <h2 class="text-xl font-black text-indigo-900 mb-4">ROOM SETTINGS</h2>
+
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <button onclick="selectMode('1v1')" id="btn-1v1" class="mode-btn p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 font-bold flex flex-col items-center gap-1 transition"><span class="text-2xl">❤️</span><span class="text-xs">1v1 Duel</span></button>
                 <button onclick="selectMode('party')" id="btn-party" class="mode-btn p-3 rounded-xl border-2 border-gray-200 text-gray-400 font-bold flex flex-col items-center gap-1 transition"><span class="text-2xl">🎉</span><span class="text-xs">Party</span></button>
@@ -71,13 +97,17 @@
                 <input type="range" id="target-slider" min="50" max="100" value="90" class="w-full accent-indigo-600" oninput="document.getElementById('slider-val').innerText = this.value + '%'">
             </div>
 
-            <div class="flex gap-2 mt-6">
-                <button onclick="createGame()" class="flex-1 bg-indigo-600 text-white p-3 rounded-xl font-bold shadow hover:bg-indigo-700 active:scale-95 transition">Create Room</button>
-                <div class="flex-1 flex gap-1">
-                    <input type="text" id="room-code" placeholder="CODE" class="w-full p-3 border-2 rounded-xl uppercase text-center font-bold">
-                    <button onclick="joinGame()" class="bg-gray-800 text-white px-4 rounded-xl font-bold hover:bg-gray-900 active:scale-95 transition">Join</button>
-                </div>
-            </div>
+            <button onclick="createGame()" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition text-lg">CREATE ROOM 🚀</button>
+        </div>
+
+        <div id="guest-panel" class="hidden">
+            <button onclick="goBack()" class="mb-4 text-xs font-bold text-gray-400 hover:text-gray-600 flex items-center gap-1">⬅ BACK</button>
+            <h2 class="text-xl font-black text-gray-800 mb-6">JOIN A ROOM</h2>
+            
+            <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Room Code</label>
+            <input type="text" id="room-code" placeholder="CODE" class="w-full p-4 border-2 border-gray-200 rounded-xl uppercase text-center font-bold text-2xl tracking-widest mb-6 focus:border-indigo-500 outline-none">
+            
+            <button onclick="joinGame()" class="w-full bg-gray-800 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-gray-900 active:scale-95 transition text-lg">JOIN GAME 🎮</button>
         </div>
 
         <div id="lobby-screen" class="hidden text-center">
@@ -97,7 +127,6 @@
             </div>
             
             <p id="round-indicator" class="text-xs text-gray-400 font-bold uppercase text-center mb-2"></p>
-            
             <p id="q-text" class="text-center font-bold text-gray-800 mb-8 text-xl leading-tight"></p>
             <ul id="sortable-list" class="space-y-3 mb-8 hidden"></ul>
             <div id="trivia-grid" class="grid grid-cols-2 gap-3 mb-8 hidden"></div>
@@ -106,14 +135,6 @@
         </div>
 
         <div id="result-screen" class="hidden text-center">
-            
-            <div id="res-round" class="hidden">
-                <h2 class="text-2xl font-black text-gray-800 mb-4">ROUND OVER</h2>
-                <div id="round-scores" class="space-y-3 mb-8"></div>
-                <button id="next-round-btn" onclick="nextRound()" class="hidden w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow hover:bg-indigo-700 animate-bounce">NEXT ROUND ➡️</button>
-                <p id="round-wait" class="text-sm text-gray-400 italic">Waiting for host...</p>
-            </div>
-
             <div id="res-final" class="hidden">
                 <div id="res-1v1" class="hidden">
                     <div class="text-6xl mb-2 heart-pulse">💖</div>
@@ -124,8 +145,9 @@
                     <h2 class="text-3xl font-black text-gray-800 mb-6">FINAL LEADERBOARD</h2>
                     <div id="leaderboard" class="space-y-3 mb-8"></div>
                 </div>
-                <button onclick="location.reload()" class="w-full bg-gray-800 text-white p-4 rounded-xl font-bold hover:bg-gray-700">Play Again</button>
+                <button onclick="reloadGame()" class="w-full bg-gray-800 text-white p-4 rounded-xl font-bold hover:bg-gray-700">Play Again</button>
             </div>
+            <div id="res-round" class="hidden"></div>
         </div>
     </div>
     <script type="module" src="script.js"></script>

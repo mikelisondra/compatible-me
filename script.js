@@ -13,7 +13,6 @@ audio.bgm.volume = 0.3;
 let isMuted = false;
 let audioStarted = false;
 
-// Try to unlock audio on the very first click anywhere
 document.addEventListener('click', () => {
     if (!audioStarted && !isMuted) {
         audio.bgm.play().then(() => {
@@ -50,20 +49,47 @@ const CONTENT = {
 async function initGame() {
     try {
         const response = await fetch('/api/keys');
-        if (!response.ok) throw new Error("Could not fetch keys (likely running locally)");
+        if (!response.ok) throw new Error("Could not fetch keys");
         const config = await response.json();
         
         app = initializeApp(config);
         db = getDatabase(app);
-        console.log("Game Connected via Vercel!");
+        console.log("Game Connected!");
     } catch (error) {
-        console.warn("DATABASE OFFLINE (Local Mode). Buttons/Sound work, but DB will fail.");
+        console.warn("DATABASE OFFLINE (Local Mode).");
     }
 }
 initGame();
 
 // UI HELPERS
+window.goToHost = () => {
+    const name = document.getElementById('username').value;
+    if(!name) return alert("Please enter your name first!");
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('host-panel').classList.remove('hidden');
+    playSound('click');
+};
+
+window.goToGuest = () => {
+    const name = document.getElementById('username').value;
+    if(!name) return alert("Please enter your name first!");
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('guest-panel').classList.remove('hidden');
+    playSound('click');
+};
+
+window.goBack = () => {
+    document.getElementById('host-panel').classList.add('hidden');
+    document.getElementById('guest-panel').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+    playSound('click');
+};
+
 window.toggleMute = () => {
+    // Play CLICK sound even when toggling mute
+    audio.click.currentTime = 0;
+    audio.click.play().catch(e=>{});
+
     isMuted = !isMuted;
     const btn = document.getElementById('mute-btn');
     if(isMuted) { 
@@ -76,6 +102,14 @@ window.toggleMute = () => {
     }
 };
 
+window.reloadGame = () => {
+    playSound('click');
+    // Wait 200ms for sound to play, then reload
+    setTimeout(() => {
+        location.reload();
+    }, 200);
+};
+
 window.playSound = (k) => {
     if(isMuted) return;
     if(k !== 'bgm') audio[k].currentTime = 0;
@@ -86,7 +120,6 @@ window.selectMode = (m) => {
     settings.mode = m;
     const b1 = document.getElementById('btn-1v1');
     const bP = document.getElementById('btn-party');
-    
     const active = "border-indigo-600 bg-indigo-50 text-indigo-700";
     const inactive = "border-gray-200 text-gray-400";
     
@@ -119,20 +152,17 @@ window.toggleCustomInputs = () => {
     playSound('click');
 };
 
-// CORE GAME LOGIC
-
+// CORE LOGIC
 window.createGame = () => {
-    if(!db) return alert("Database Offline. Push to Vercel to play!");
+    if(!db) return alert("Database Offline.");
     playSound('click');
     
     myName = document.getElementById('username').value;
-    if(!myName) return alert("Enter Name");
-
+    
     myRoom = Math.random().toString(36).substring(2,6).toUpperCase();
     settings.type = document.getElementById('game-type').value;
     settings.target = document.getElementById('target-slider').value;
     
-    // MATCHED IDS TO YOUR HTML HERE:
     const maxRounds = parseInt(document.getElementById('round-setting').value);
     const timeLimit = parseInt(document.getElementById('timer-setting').value);
 
@@ -161,7 +191,7 @@ window.joinGame = () => {
     playSound('click');
     myName = document.getElementById('username').value;
     myRoom = document.getElementById('room-code').value.toUpperCase();
-    if(!myName || !myRoom) return alert("Enter Name & Code");
+    if(!myRoom) return alert("Enter Code");
 
     get(ref(db, `games/${myRoom}`)).then(snap => {
         if(snap.exists()) {
@@ -192,7 +222,10 @@ function generateRoundData(type, src) {
 }
 
 function enterLobby() {
-    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('host-panel').classList.add('hidden');
+    document.getElementById('guest-panel').classList.add('hidden');
+    
     document.getElementById('lobby-screen').classList.remove('hidden');
     document.getElementById('display-code').innerText = myRoom;
 
@@ -211,7 +244,6 @@ function enterLobby() {
         document.getElementById('lobby-tag').innerText = `${data.mode} • ${data.maxRounds} Rnds`;
 
         if(isHost) document.getElementById('start-btn').classList.remove('hidden');
-        
         if(data.state === 'playing') startGameUI(data);
         if(data.state === 'finished') showResults(data);
     });
@@ -226,21 +258,19 @@ function startGameUI(data) {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
-    // Update Indicators
     document.getElementById('game-badge').innerText = data.type.toUpperCase();
     document.getElementById('round-indicator').innerText = `ROUND ${data.currRound} / ${data.maxRounds}`;
     document.getElementById('submit-btn').classList.remove('hidden');
     document.getElementById('status-msg').innerText = "";
 
-    // Timer Logic (UPDATED TO MATCH YOUR HTML)
     clearInterval(timerInterval);
-    const tBox = document.getElementById('timer-box'); // The red box
-    const tVal = document.getElementById('timer-val'); // The number inside
+    const tBox = document.getElementById('timer-box');
+    const tVal = document.getElementById('timer-val'); 
     
-    if (data.timeLimit > 0) {
+    if (data.timeLimit > 0 && !isHost) {
         let timeLeft = data.timeLimit;
         tVal.innerText = timeLeft;
-        tBox.classList.remove('hidden'); // Show the box
+        tBox.classList.remove('hidden'); 
         
         timerInterval = setInterval(() => {
             timeLeft--;
@@ -256,12 +286,10 @@ function startGameUI(data) {
         tBox.classList.add('hidden');
     }
 
-    // Question Text Logic
     let text = isHost ? (data.type === 'ranking' ? "Rank YOUR Favorites" : `Select: ${data.roundData.q}`) 
                       : (data.type === 'ranking' ? `Guess ${data.host}'s Order` : `Guess ${data.host}'s Answer: ${data.roundData.q}`);
     document.getElementById('q-text').innerText = text;
 
-    // Render Options
     const rList = document.getElementById('sortable-list');
     const tGrid = document.getElementById('trivia-grid');
 
@@ -290,7 +318,6 @@ function startGameUI(data) {
 }
 
 window.submitAnswer = (tAns = null, btn = null, forced = false) => {
-    // If forced by timer, stop the timer
     clearInterval(timerInterval);
 
     let val = tAns;
@@ -308,8 +335,6 @@ window.submitAnswer = (tAns = null, btn = null, forced = false) => {
     if(btn) btn.classList.add('bg-indigo-600', 'text-white');
     
     if(!forced) playSound('click');
-    
-    // Save answer
     update(ref(db, `games/${myRoom}/answers/${myId}`), { val: val });
     
     if(isHost) setTimeout(checkCompletion, 1000);
@@ -322,7 +347,6 @@ function checkCompletion() {
         const answers = d.answers || {};
 
         if(Object.keys(answers).length >= pIds.length) {
-            // Calculate Scores
             const hostId = Object.keys(d.players).find(k => d.players[k].name === d.host);
             const hostAns = answers[hostId].val;
             let updates = {};
@@ -341,25 +365,18 @@ function checkCompletion() {
                     roundScore = Math.floor(((max - dist)/max)*100);
                 }
                 
-                // Average Score so far
                 const oldScore = d.players[pid].score || 0;
                 const newAvg = Math.floor(((oldScore * (d.currRound - 1)) + roundScore) / d.currRound);
                 updates[`players/${pid}/score`] = newAvg;
             });
 
-            // Decide: Next Round or Finish
             if (d.currRound < d.maxRounds) {
-                // Prepare Next Round
                 updates['currRound'] = d.currRound + 1;
                 updates['answers'] = null;
-                
                 const newData = generateRoundData(d.type, 'random');
                 updates['roundData'] = newData;
-                
                 update(ref(db, `games/${myRoom}`), updates);
-                
             } else {
-                // Game Over
                 updates['state'] = 'finished';
                 update(ref(db, `games/${myRoom}`), updates);
             }
@@ -372,6 +389,8 @@ function checkCompletion() {
 function showResults(data) {
     document.getElementById('game-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.remove('hidden');
+    document.getElementById('res-final').classList.remove('hidden'); 
+    document.getElementById('res-round').classList.add('hidden'); 
 
     const players = Object.values(data.players).filter(p => p.name !== data.host);
     players.sort((a,b) => b.score - a.score);
