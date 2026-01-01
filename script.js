@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
-// AUDIO SYSTEM
+// Audio System
 const audio = {
     bgm: new Audio('sounds/bgm.mp3'),
     click: new Audio('sounds/click.mp3'),
@@ -21,7 +21,7 @@ document.addEventListener('click', () => {
     }
 }, { once: true });
 
-// GLOBAL VARIABLES
+// Global Variables
 let app, db;
 let myName, myRoom, isHost = false;
 let myId = localStorage.getItem('pid') || Math.random().toString(36).substr(2,9);
@@ -31,6 +31,7 @@ let timerInterval = null;
 let currentEditRound = 1;
 let customDeckData = []; 
 let setupSortable = null;
+let currentRenderedRound = 0; // Prevents re-shuffling mid-round
 
 const CONTENT = {
     ranking: {
@@ -48,7 +49,7 @@ const CONTENT = {
     ]
 };
 
-// INITIALIZATION
+// Initialization
 async function initGame() {
     try {
         const response = await fetch('/api/keys');
@@ -64,7 +65,7 @@ async function initGame() {
 }
 initGame();
 
-// UI NAVIGATION
+// UI Navigation
 window.goToHost = () => {
     const name = document.getElementById('username').value;
     if(!name) return alert("Please enter your name first!");
@@ -93,7 +94,7 @@ window.reloadGame = () => {
     setTimeout(() => { location.reload(); }, 200);
 };
 
-// AUDIO & SETTINGS HELPERS
+// Audio & Settings Helpers
 window.toggleMute = () => {
     audio.click.currentTime = 0;
     audio.click.play().catch(e=>{});
@@ -140,7 +141,7 @@ window.setDiff = (d) => {
     playSound('click');
 };
 
-// SLIDER EDITOR LOGIC
+// Slider Editor Logic
 window.toggleCustomInputs = () => {
     const src = document.getElementById('topic-source').value;
     const box = document.getElementById('custom-inputs');
@@ -154,7 +155,9 @@ window.toggleCustomInputs = () => {
             setupSortable = new Sortable(document.getElementById('setup-list'), {
                 animation: 150,
                 handle: '.drag-handle',
-                ghostClass: 'bg-indigo-50'
+                ghostClass: 'bg-indigo-50',
+                delay: 100, 
+                delayOnTouchOnly: true
             });
         }
 
@@ -270,7 +273,7 @@ function saveCurrentSlide() {
     customDeckData[currentEditRound - 1] = { q: q, items: items, lockedIdx: lockedIdx };
 }
 
-// CORE GAME LOGIC
+// Core Game Logic
 window.createGame = () => {
     if(!db) return alert("Database Offline.");
     playSound('click');
@@ -377,7 +380,15 @@ function enterLobby() {
         document.getElementById('lobby-tag').innerText = `${data.mode} • ${data.maxRounds} Rnds`;
 
         if(isHost) document.getElementById('start-btn').classList.remove('hidden');
-        if(data.state === 'playing') startGameUI(data);
+        
+        if(data.state === 'playing') {
+            // Only update UI if we moved to a new round
+            if (currentRenderedRound !== data.currRound) {
+                currentRenderedRound = data.currRound;
+                startGameUI(data);
+            }
+        }
+        
         if(data.state === 'finished') showResults(data);
     });
 }
@@ -447,7 +458,13 @@ function startGameUI(data) {
             li.onmousedown = () => playSound('click');
             rList.appendChild(li);
         });
-        new Sortable(rList, { animation: 150 });
+        
+        new Sortable(rList, { 
+            animation: 150,
+            delay: 150, 
+            delayOnTouchOnly: true
+        });
+
     } else {
         tGrid.classList.remove('hidden'); rList.classList.add('hidden'); tGrid.innerHTML = "";
         data.roundData.items.forEach(opt => {

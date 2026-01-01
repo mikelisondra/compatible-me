@@ -2,7 +2,10 @@
 
 .draggable-item { 
     cursor: grab; 
-    transition: background-color 0.2s, transform 0.1s; 
+    transition: background-color 0.2s, transform 0.1s;
+    touch-action: none;      
+    user-select: none;        
+    -webkit-user-select: none;
 }
 .draggable-item:active { 
     cursor: grabbing; 
