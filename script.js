@@ -30,6 +30,7 @@ let settings = { mode: '1v1', type: 'ranking', diff: 'casual', target: 90 };
 let timerInterval = null;
 let currentEditRound = 1;
 let customDeckData = []; 
+let setupSortable = null;
 
 const CONTENT = {
     ranking: {
@@ -148,6 +149,15 @@ window.toggleCustomInputs = () => {
     if(src === 'custom') {
         box.classList.remove('hidden');
         currentEditRound = 1;
+
+        if(!setupSortable) {
+            setupSortable = new Sortable(document.getElementById('setup-list'), {
+                animation: 150,
+                handle: '.drag-handle',
+                ghostClass: 'bg-indigo-50'
+            });
+        }
+
         customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
         renderSlide();
     } else {
@@ -159,11 +169,22 @@ window.toggleCustomInputs = () => {
 window.toggleLock = () => {
     const locked = document.getElementById('slide-lock').checked;
     const radios = document.querySelectorAll('.ans-radio');
+    const inputs = document.querySelectorAll('.slide-item');
     const type = document.getElementById('game-type').value;
 
     radios.forEach(r => {
         if(locked && type === 'trivia') r.classList.remove('hidden');
         else r.classList.add('hidden');
+    });
+
+    inputs.forEach(input => {
+        if(locked) {
+            input.disabled = true;
+            input.classList.add('text-gray-400', 'cursor-not-allowed');
+        } else {
+            input.disabled = false;
+            input.classList.remove('text-gray-400', 'cursor-not-allowed');
+        }
     });
 };
 
@@ -261,6 +282,7 @@ window.createGame = () => {
     settings.type = document.getElementById('game-type').value;
     settings.target = document.getElementById('target-slider').value;
     
+    const simpleMode = document.getElementById('simple-mode').checked;
     const maxRounds = parseInt(document.getElementById('round-setting').value);
     const timeLimit = parseInt(document.getElementById('timer-setting').value);
     const src = document.getElementById('topic-source').value;
@@ -291,6 +313,7 @@ window.createGame = () => {
         diff: settings.diff,
         type: settings.type,
         target: settings.target,
+        simpleMode: simpleMode,
         maxRounds: maxRounds,
         currRound: 1,
         timeLimit: timeLimit,
@@ -396,8 +419,18 @@ function startGameUI(data) {
         tBox.classList.add('hidden');
     }
 
-    let text = isHost ? (data.type === 'ranking' ? "Rank YOUR Favorites" : `Select: ${data.roundData.q}`) 
-                      : (data.type === 'ranking' ? `Guess ${data.host}'s Order` : `Guess ${data.host}'s Answer: ${data.roundData.q}`);
+    let text = "";
+    if (isHost) {
+        text = (data.type === 'ranking' ? "Rank YOUR Favorites" : `Select: ${data.roundData.q}`);
+    } else {
+        if (data.simpleMode) {
+            text = data.roundData.q;
+        } else {
+            text = (data.type === 'ranking' 
+                ? `Guess ${data.host}'s Order` 
+                : `Guess ${data.host}'s Answer: ${data.roundData.q}`);
+        }
+    }
     document.getElementById('q-text').innerText = text;
 
     const rList = document.getElementById('sortable-list');

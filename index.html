@@ -75,6 +75,16 @@
                 </div>
             </div>
 
+            <div class="mb-4">
+                <label class="flex items-center gap-3 p-3 border-2 border-gray-200 rounded-xl cursor-pointer hover:bg-gray-50 transition">
+                    <input type="checkbox" id="simple-mode" class="w-5 h-5 accent-indigo-600">
+                    <div>
+                        <span class="block text-sm font-bold text-gray-700">Simple Question Mode</span>
+                        <span class="block text-xs text-gray-400">Hides "Guess [Name]'s Answer" prefix</span>
+                    </div>
+                </label>
+            </div>
+
             <div id="custom-inputs" class="hidden mb-6 bg-indigo-50 p-4 rounded-xl border-2 border-indigo-100 relative transition-all">
                 
                 <div class="flex justify-between items-center mb-3">
@@ -87,26 +97,31 @@
             
                 <input type="text" id="slide-q" class="w-full p-3 border-2 border-indigo-100 rounded-lg mb-3 text-sm font-bold text-indigo-900 focus:border-indigo-500 outline-none" placeholder="Type Question Here...">
                 
-                <div class="grid grid-cols-1 gap-2 mb-4">
+                <div id="setup-list" class="grid grid-cols-1 gap-2 mb-4">
                     <div class="flex items-center gap-2 bg-white p-2 border rounded border-gray-200">
+                        <span class="drag-handle cursor-move text-gray-400 hover:text-indigo-600 px-1">☰</span>
                         <input type="radio" name="correct-ans" value="0" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none" placeholder="Option 1">
+                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent" placeholder="Option 1">
                     </div>
                     <div class="flex items-center gap-2 bg-white p-2 border rounded border-gray-200">
+                        <span class="drag-handle cursor-move text-gray-400 hover:text-indigo-600 px-1">☰</span>
                         <input type="radio" name="correct-ans" value="1" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none" placeholder="Option 2">
+                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent" placeholder="Option 2">
                     </div>
                     <div class="flex items-center gap-2 bg-white p-2 border rounded border-gray-200">
+                        <span class="drag-handle cursor-move text-gray-400 hover:text-indigo-600 px-1">☰</span>
                         <input type="radio" name="correct-ans" value="2" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none" placeholder="Option 3">
+                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent" placeholder="Option 3">
                     </div>
                     <div class="flex items-center gap-2 bg-white p-2 border rounded border-gray-200">
+                        <span class="drag-handle cursor-move text-gray-400 hover:text-indigo-600 px-1">☰</span>
                         <input type="radio" name="correct-ans" value="3" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none" placeholder="Option 4">
+                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent" placeholder="Option 4">
                     </div>
                     <div id="cont-item-5" class="flex items-center gap-2 bg-white p-2 border rounded border-gray-200 hidden">
+                        <span class="drag-handle cursor-move text-gray-400 hover:text-indigo-600 px-1">☰</span>
                         <input type="radio" name="correct-ans" value="4" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" id="slide-item-5" class="slide-item w-full text-sm outline-none" placeholder="Option 5">
+                        <input type="text" id="slide-item-5" class="slide-item w-full text-sm outline-none bg-transparent" placeholder="Option 5">
                     </div>
                 </div>
             
