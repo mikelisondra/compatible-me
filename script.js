@@ -1,8 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
 import { getDatabase, ref, set, onValue, update, get } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-database.js";
 
-// UTILITY
-
+// UTILITY 
 window.addEventListener('click', (e) => {
     const menu = document.getElementById('settings-menu');
     const btn = document.getElementById('gear-btn');
@@ -12,321 +11,6 @@ window.addEventListener('click', (e) => {
         }
     }
 });
-
-// COLOR CHANGE LOGIC
-const themes = ['indigo', 'red', 'green', 'orange', 'pink'];
-let currentThemeIdx = 0;
-let titleTaps = 0;
-
-window.handleTitleTap = () => {
-    titleTaps++;
-    const msg = document.getElementById('tap-msg');
-    
-    // Trigger every 3rd tap
-    if (titleTaps % 3 === 0) {
-        const oldColor = (currentThemeIdx < themes.length) ? themes[currentThemeIdx] : 'indigo'; 
-        currentThemeIdx++;
-
-        if (currentThemeIdx < themes.length) {
-            const newColor = themes[currentThemeIdx];
-            swapColorClasses(oldColor, newColor);
-            playSound('click');
-        } 
-        else if (currentThemeIdx === themes.length) {
-            swapColorClasses(themes[themes.length - 1], 'gray'); 
-            document.documentElement.classList.add('dark');
-            localStorage.setItem('theme', 'dark');
-            playSound('click');
-        } 
-        else if (currentThemeIdx === themes.length + 1) {
-            
-            document.documentElement.classList.remove('dark');
-            localStorage.setItem('theme', 'light');
-            
-            msg.classList.remove('hidden');
-            msg.classList.add('animate-popup');
-            
-            setTimeout(() => {
-                msg.classList.add('hidden');
-                msg.classList.remove('animate-popup');
-            }, 3000);
-            
-            playSound('fail'); 
-            
-            titleTaps = 0;
-            currentThemeIdx = 0;
-            swapColorClasses('gray', 'indigo'); 
-        }
-    }
-};
-
-function swapColorClasses(oldColor, newColor) {
-    const elements = document.querySelectorAll('*');
-    elements.forEach(el => {
-        el.classList.forEach(cls => {
-            if (cls.includes(oldColor)) {
-                const newCls = cls.replace(oldColor, newColor);
-                el.classList.replace(cls, newCls);
-            }
-        });
-    });
-}
-
-// AUDIO SYSTEM
-const bgmTracks = ['sounds/bgm.mp3', 'sounds/bgm2.mp3'];
-const randomTrack = bgmTracks[Math.floor(Math.random() * bgmTracks.length)];
-
-const audio = {
-    bgm: new Audio(randomTrack),
-    click: new Audio('sounds/click.mp3'),
-    win: new Audio('sounds/win.mp3'),
-    fail: new Audio('sounds/fail.mp3')
-};
-audio.bgm.loop = true; 
-audio.bgm.volume = 0.3;
-let isMuted = false;
-let audioStarted = false;
-
-document.addEventListener('click', () => {
-    if (!audioStarted && !isMuted) {
-        audio.bgm.play().then(() => audioStarted = true).catch(e => {});
-    }
-}, { once: true });
-
-// GLOBAL VARIABLES
-let app, db;
-let myName, myRoom, isHost = false;
-let myId = localStorage.getItem('pid') || Math.random().toString(36).substr(2,9);
-localStorage.setItem('pid', myId);
-let settings = { mode: '1v1', type: 'ranking', diff: 'casual', target: 90 };
-let timerInterval = null;
-let currentEditRound = 1;
-let customDeckData = []; 
-let setupSortable = null;
-let currentRenderedRound = 0;
-let guestHasStartedRound = false; 
-
-// CONTENT DATA
-const CONTENT = {
-    ranking: {
-        "foods": ["Pizza", "Sushi", "Tacos", "Burgers", "Pasta"],
-        "hobbies": ["Gaming", "Traveling", "Reading", "Cooking", "Gym"],
-        "dates": ["Movies", "Dinner", "Picnic", "Theme Park", "Hiking"],
-        "superpowers": ["Flight", "Invisibility", "Strength", "Telepathy", "Speed"],
-        "seasons": ["Summer", "Winter", "Autumn", "Spring", "Monsoon"]
-    },
-    trivia: [
-        {q: "My Spirit Animal?", opts: ["Cat", "Dog", "Lion", "Sloth"]},
-        {q: "Dream Vacation?", opts: ["Paris", "Tokyo", "Bali", "NYC"]},
-        {q: "Best Weekend?", opts: ["Sleep", "Party", "Hike", "Game"]},
-        {q: "Ideally, I am...", opts: ["Rich", "Famous", "Smart", "Kind"]}
-    ]
-};
-
-// INITIALIZATION
-async function initGame() {
-    try {
-        const response = await fetch('/api/keys');
-        if (!response.ok) throw new Error("Could not fetch keys");
-        const config = await response.json();
-        app = initializeApp(config);
-        db = getDatabase(app);
-        console.log("Game Connected!");
-    } catch (error) { console.warn("DB Offline or Fetch Failed"); }
-}
-initGame();
-
-// UI NAVIGATION
-window.goToHost = () => {
-    const name = document.getElementById('username').value;
-    if(!name) return alert("Enter Name");
-    document.getElementById('start-screen').classList.add('hidden');
-    document.getElementById('host-panel').classList.remove('hidden');
-    playSound('click');
-};
-
-window.goToGuest = () => {
-    const name = document.getElementById('username').value;
-    if(!name) return alert("Enter Name");
-    document.getElementById('start-screen').classList.add('hidden');
-    document.getElementById('guest-panel').classList.remove('hidden');
-    playSound('click');
-};
-
-window.goBack = () => {
-    document.getElementById('host-panel').classList.add('hidden');
-    document.getElementById('guest-panel').classList.add('hidden');
-    document.getElementById('start-screen').classList.remove('hidden');
-    playSound('click');
-};
-
-window.reloadGame = () => {
-    playSound('click');
-    setTimeout(() => { location.reload(); }, 200);
-};
-
-window.swapRoles = () => {
-    playSound('click');
-    document.getElementById('result-screen').classList.add('hidden');
-    document.getElementById('res-final').classList.add('hidden');
-    document.getElementById('res-1v1').classList.add('hidden');
-    document.getElementById('res-party').classList.add('hidden');
-
-    if(isHost) {
-        isHost = false; 
-        document.getElementById('guest-panel').classList.remove('hidden');
-        document.getElementById('room-code').value = ""; 
-    } else {
-        document.getElementById('host-panel').classList.remove('hidden');
-    }
-};
-
-window.playSound = (k) => {
-    if(!isMuted && audio[k]) { audio[k].currentTime = 0; audio[k].play().catch(e=>{}); }
-};
-
-// GAME SETUP LOGIC
-window.selectMode = (m) => {
-    settings.mode = m;
-    const b1 = document.getElementById('btn-1v1');
-    const bP = document.getElementById('btn-party');
-    const iHeart = document.getElementById('icon-heart');
-    const iParty = document.getElementById('icon-party');
-    
-    if(m==='1v1') {
-        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300";
-        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600";
-        
-        if(iHeart) iHeart.classList.add('heart-pulse');
-        if(iParty) iParty.classList.remove('party-pop');
-    } else {
-        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300";
-        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600";
-        
-        if(iHeart) iHeart.classList.remove('heart-pulse');
-        if(iParty) iParty.classList.add('party-pop');
-    }
-    playSound('click');
-};
-
-window.setDiff = (d) => {
-    settings.diff = d;
-    const box = document.getElementById('slider-box');
-    const btnCasual = document.getElementById('btn-casual');
-    const btnStandard = document.getElementById('btn-standard');
-
-    if(d === 'casual') {
-        box.classList.add('hidden');
-        btnCasual.className = "flex-1 py-2 rounded-md font-bold text-xs bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-300 transition-all active:scale-95";
-        btnStandard.className = "flex-1 py-2 rounded-md font-bold text-xs text-gray-500 dark:text-gray-400 transition-all hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95";
-    } else {
-        box.classList.remove('hidden');
-        btnCasual.className = "flex-1 py-2 rounded-md font-bold text-xs text-gray-500 dark:text-gray-400 transition-all hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95";
-        btnStandard.className = "flex-1 py-2 rounded-md font-bold text-xs bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-300 transition-all active:scale-95";
-    }
-    playSound('click');
-};
-
-window.toggleCustomInputs = () => {
-    const src = document.getElementById('topic-source').value;
-    const box = document.getElementById('custom-inputs');
-    const rounds = parseInt(document.getElementById('round-setting').value);
-
-    if(src === 'custom') {
-        box.classList.remove('hidden');
-        currentEditRound = 1;
-        if(!setupSortable) {
-            setupSortable = new Sortable(document.getElementById('setup-list'), {
-                animation: 150, handle: '.drag-handle', ghostClass: 'bg-indigo-50', delay: 100, delayOnTouchOnly: true
-            });
-        }
-        customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
-        renderSlide();
-    } else {
-        box.classList.add('hidden');
-    }
-    playSound('click');
-};
-
-window.toggleLock = () => {
-    const locked = document.getElementById('slide-lock').checked;
-    const radios = document.querySelectorAll('.ans-radio');
-    const inputs = document.querySelectorAll('.slide-item');
-    const type = document.getElementById('game-type').value;
-
-    radios.forEach(r => {
-        if(locked && type === 'trivia') r.classList.remove('hidden'); else r.classList.add('hidden');
-    });
-    inputs.forEach(input => {
-        input.disabled = locked;
-        if(locked) input.classList.add('text-gray-400', 'cursor-not-allowed');
-        else input.classList.remove('text-gray-400', 'cursor-not-allowed');
-    });
-};
-
-function renderSlide() {
-    const totalRounds = parseInt(document.getElementById('round-setting').value);
-    const type = document.getElementById('game-type').value;
-    document.getElementById('slide-counter').innerText = `ROUND ${currentEditRound} / ${totalRounds}`;
-    const item5Cont = document.getElementById('cont-item-5');
-    
-    if(type === 'ranking') {
-        item5Cont.classList.remove('hidden');
-        item5Cont.parentElement.classList.replace('grid-cols-1', 'grid-cols-2'); 
-    } else {
-        item5Cont.classList.add('hidden');
-        item5Cont.parentElement.classList.replace('grid-cols-2', 'grid-cols-1');
-    }
-
-    const data = customDeckData[currentEditRound - 1];
-    document.getElementById('slide-q').value = data.q;
-    const inputs = document.querySelectorAll('.slide-item');
-    inputs.forEach((input, index) => { input.value = data.items[index] || ""; });
-    document.getElementById('slide-lock').checked = (data.lockedIdx !== null);
-    
-    const radios = document.querySelectorAll('.ans-radio');
-    radios.forEach(r => { r.checked = (parseInt(r.value) === data.lockedIdx); });
-    toggleLock();
-
-    const btnPrev = document.getElementById('btn-prev');
-    const btnNext = document.getElementById('btn-next');
-    const btnFinish = document.getElementById('btn-finish');
-    
-    btnPrev.disabled = (currentEditRound === 1);
-    
-    if(currentEditRound === totalRounds) {
-        btnNext.classList.add('hidden');
-        btnFinish.classList.remove('hidden');
-    } else {
-        btnNext.classList.remove('hidden');
-        btnFinish.classList.add('hidden');
-    }
-}
-
-window.nextSlide = () => {
-    saveCurrentSlide();
-    const totalRounds = parseInt(document.getElementById('round-setting').value);
-    if (currentEditRound < totalRounds) { currentEditRound++; renderSlide(); playSound('click'); } 
-    else { playSound('win'); alert("All rounds set! Click 'Create Room' to start."); }
-};
-
-window.prevSlide = () => {
-    saveCurrentSlide();
-    if (currentEditRound > 1) { currentEditRound--; renderSlide(); playSound('click'); }
-};
-
-function saveCurrentSlide() {
-    const q = document.getElementById('slide-q').value;
-    const inputs = document.querySelectorAll('.slide-item');
-    const items = Array.from(inputs).map(i => i.value);
-    let lockedIdx = null;
-    if(document.getElementById('slide-lock').checked) {
-        const checked = document.querySelector('input[name="correct-ans"]:checked');
-        if(checked) lockedIdx = parseInt(checked.value);
-        if(document.getElementById('game-type').value === 'ranking') lockedIdx = -1;
-    }
-    customDeckData[currentEditRound - 1] = { q: q, items: items, lockedIdx: lockedIdx };
-}
 
 window.openSettings = (e) => {
     e.stopPropagation();
@@ -434,6 +118,324 @@ if (localStorage.getItem('theme') === 'dark') {
     if(toggle) toggle.checked = true;
 }
 
+// COLOR CHANGE LOGIC
+const themes = ['indigo', 'red', 'green', 'orange', 'pink'];
+let currentThemeIdx = 0;
+let titleTaps = 0;
+
+window.handleTitleTap = () => {
+    titleTaps++;
+    const msg = document.getElementById('tap-msg');
+    
+    if (titleTaps % 3 === 0) {
+        const oldColor = (currentThemeIdx < themes.length) ? themes[currentThemeIdx] : 'indigo'; 
+        currentThemeIdx++;
+
+        if (currentThemeIdx < themes.length) {
+            const newColor = themes[currentThemeIdx];
+            swapColorClasses(oldColor, newColor);
+            playSound('click');
+        } 
+        else if (currentThemeIdx === themes.length) {
+            swapColorClasses(themes[themes.length - 1], 'gray'); 
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+            playSound('click');
+        } 
+        else if (currentThemeIdx === themes.length + 1) {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+            
+            msg.classList.remove('hidden');
+            msg.classList.add('animate-popup');
+            
+            setTimeout(() => {
+                msg.classList.add('hidden');
+                msg.classList.remove('animate-popup');
+            }, 3000);
+            
+            playSound('fail'); 
+            
+            titleTaps = 0;
+            currentThemeIdx = 0;
+            swapColorClasses('gray', 'indigo'); 
+        }
+    }
+};
+
+function swapColorClasses(oldColor, newColor) {
+    const elements = document.querySelectorAll('*');
+    elements.forEach(el => {
+        el.classList.forEach(cls => {
+            if (cls.includes(oldColor)) {
+                const newCls = cls.replace(oldColor, newColor);
+                el.classList.replace(cls, newCls);
+            }
+        });
+    });
+}
+
+// AUDIO SYSTEM
+const bgmTracks = ['sounds/bgm.mp3', 'sounds/bgm2.mp3'];
+const randomTrack = bgmTracks[Math.floor(Math.random() * bgmTracks.length)];
+
+const audio = {
+    bgm: new Audio(randomTrack),
+    click: new Audio('sounds/click.mp3'),
+    win: new Audio('sounds/win.mp3'),
+    fail: new Audio('sounds/fail.mp3')
+};
+audio.bgm.loop = true; 
+audio.bgm.volume = 0.3;
+let isMuted = false;
+let audioStarted = false;
+
+document.addEventListener('click', () => {
+    if (!audioStarted && !isMuted) {
+        audio.bgm.play().then(() => audioStarted = true).catch(e => {});
+    }
+}, { once: true });
+
+window.playSound = (k) => {
+    if(!isMuted && audio[k]) { audio[k].currentTime = 0; audio[k].play().catch(e=>{}); }
+};
+
+// GLOBAL VARIABLES
+let app, db;
+let myName, myRoom, isHost = false;
+let myId = localStorage.getItem('pid') || Math.random().toString(36).substr(2,9);
+localStorage.setItem('pid', myId);
+let settings = { mode: '1v1', type: 'ranking', diff: 'casual', target: 90 };
+let timerInterval = null;
+let currentEditRound = 1;
+let customDeckData = []; 
+let setupSortable = null;
+let currentRenderedRound = 0;
+let guestHasStartedRound = false; 
+
+// CONTENT DATA
+const CONTENT = {
+    ranking: {
+        "foods": ["Pizza", "Sushi", "Tacos", "Burgers", "Pasta"],
+        "hobbies": ["Gaming", "Traveling", "Reading", "Cooking", "Gym"],
+        "dates": ["Movies", "Dinner", "Picnic", "Theme Park", "Hiking"],
+        "superpowers": ["Flight", "Invisibility", "Strength", "Telepathy", "Speed"],
+        "seasons": ["Summer", "Winter", "Autumn", "Spring", "Monsoon"]
+    },
+    trivia: [
+        {q: "My Spirit Animal?", opts: ["Cat", "Dog", "Lion", "Sloth"]},
+        {q: "Dream Vacation?", opts: ["Paris", "Tokyo", "Bali", "NYC"]},
+        {q: "Best Weekend?", opts: ["Sleep", "Party", "Hike", "Game"]},
+        {q: "Ideally, I am...", opts: ["Rich", "Famous", "Smart", "Kind"]}
+    ]
+};
+
+// INITIALIZATION
+async function initGame() {
+    try {
+        const response = await fetch('api/keys');
+        if (!response.ok) throw new Error("Could not fetch keys");
+        const config = await response.json();
+        app = initializeApp(config);
+        db = getDatabase(app);
+        console.log("Game Connected!");
+    } catch (error) { 
+        console.warn("DB Offline or Fetch Failed. UI buttons should still work.", error); 
+        
+    }
+}
+initGame();
+
+// UI NAVIGATION
+window.goToHost = () => {
+    const name = document.getElementById('username').value;
+    if(!name) return alert("Enter Name");
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('host-panel').classList.remove('hidden');
+    window.playSound('click');
+};
+
+window.goToGuest = () => {
+    const name = document.getElementById('username').value;
+    if(!name) return alert("Enter Name");
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('guest-panel').classList.remove('hidden');
+    window.playSound('click');
+};
+
+window.goBack = () => {
+    document.getElementById('host-panel').classList.add('hidden');
+    document.getElementById('guest-panel').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+    window.playSound('click');
+};
+
+window.reloadGame = () => {
+    window.playSound('click');
+    setTimeout(() => { location.reload(); }, 200);
+};
+
+window.swapRoles = () => {
+    window.playSound('click');
+    document.getElementById('result-screen').classList.add('hidden');
+    document.getElementById('res-final').classList.add('hidden');
+    document.getElementById('res-1v1').classList.add('hidden');
+    document.getElementById('res-party').classList.add('hidden');
+
+    if(isHost) {
+        isHost = false; 
+        document.getElementById('guest-panel').classList.remove('hidden');
+        document.getElementById('room-code').value = ""; 
+    } else {
+        document.getElementById('host-panel').classList.remove('hidden');
+    }
+};
+
+// GAME SETUP LOGIC
+window.selectMode = (m) => {
+    settings.mode = m;
+    const b1 = document.getElementById('btn-1v1');
+    const bP = document.getElementById('btn-party');
+    const iHeart = document.getElementById('icon-heart');
+    const iParty = document.getElementById('icon-party');
+    
+    if(m==='1v1') {
+        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300";
+        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600";
+        
+        if(iHeart) iHeart.classList.add('heart-pulse');
+        if(iParty) iParty.classList.remove('party-pop');
+    } else {
+        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300";
+        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition-all hover:scale-105 active:scale-95 hover:shadow-md border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400 hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600";
+        
+        if(iHeart) iHeart.classList.remove('heart-pulse');
+        if(iParty) iParty.classList.add('party-pop');
+    }
+    window.playSound('click');
+};
+
+window.setDiff = (d) => {
+    settings.diff = d;
+    const box = document.getElementById('slider-box');
+    const btnCasual = document.getElementById('btn-casual');
+    const btnStandard = document.getElementById('btn-standard');
+
+    if(d === 'casual') {
+        box.classList.add('hidden');
+        btnCasual.className = "flex-1 py-2 rounded-md font-bold text-xs bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-300 transition-all active:scale-95";
+        btnStandard.className = "flex-1 py-2 rounded-md font-bold text-xs text-gray-500 dark:text-gray-400 transition-all hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95";
+    } else {
+        box.classList.remove('hidden');
+        btnCasual.className = "flex-1 py-2 rounded-md font-bold text-xs text-gray-500 dark:text-gray-400 transition-all hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95";
+        btnStandard.className = "flex-1 py-2 rounded-md font-bold text-xs bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-300 transition-all active:scale-95";
+    }
+    window.playSound('click');
+};
+
+window.toggleCustomInputs = () => {
+    const src = document.getElementById('topic-source').value;
+    const box = document.getElementById('custom-inputs');
+    const rounds = parseInt(document.getElementById('round-setting').value);
+
+    if(src === 'custom') {
+        box.classList.remove('hidden');
+        currentEditRound = 1;
+        if(!setupSortable) {
+            setupSortable = new Sortable(document.getElementById('setup-list'), {
+                animation: 150, handle: '.drag-handle', ghostClass: 'bg-indigo-50', delay: 100, delayOnTouchOnly: true
+            });
+        }
+        customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
+        renderSlide();
+    } else {
+        box.classList.add('hidden');
+    }
+    window.playSound('click');
+};
+
+window.toggleLock = () => {
+    const locked = document.getElementById('slide-lock').checked;
+    const radios = document.querySelectorAll('.ans-radio');
+    const inputs = document.querySelectorAll('.slide-item');
+    const type = document.getElementById('game-type').value;
+
+    radios.forEach(r => {
+        if(locked && type === 'trivia') r.classList.remove('hidden'); else r.classList.add('hidden');
+    });
+    inputs.forEach(input => {
+        input.disabled = locked;
+        if(locked) input.classList.add('text-gray-400', 'cursor-not-allowed');
+        else input.classList.remove('text-gray-400', 'cursor-not-allowed');
+    });
+};
+
+function renderSlide() {
+    const totalRounds = parseInt(document.getElementById('round-setting').value);
+    const type = document.getElementById('game-type').value;
+    document.getElementById('slide-counter').innerText = `ROUND ${currentEditRound} / ${totalRounds}`;
+    const item5Cont = document.getElementById('cont-item-5');
+    
+    if(type === 'ranking') {
+        item5Cont.classList.remove('hidden');
+        item5Cont.parentElement.classList.replace('grid-cols-1', 'grid-cols-2'); 
+    } else {
+        item5Cont.classList.add('hidden');
+        item5Cont.parentElement.classList.replace('grid-cols-2', 'grid-cols-1');
+    }
+
+    const data = customDeckData[currentEditRound - 1];
+    document.getElementById('slide-q').value = data.q;
+    const inputs = document.querySelectorAll('.slide-item');
+    inputs.forEach((input, index) => { input.value = data.items[index] || ""; });
+    document.getElementById('slide-lock').checked = (data.lockedIdx !== null);
+    
+    const radios = document.querySelectorAll('.ans-radio');
+    radios.forEach(r => { r.checked = (parseInt(r.value) === data.lockedIdx); });
+    toggleLock();
+
+    const btnPrev = document.getElementById('btn-prev');
+    const btnNext = document.getElementById('btn-next');
+    const btnFinish = document.getElementById('btn-finish');
+    
+    btnPrev.disabled = (currentEditRound === 1);
+    
+    if(currentEditRound === totalRounds) {
+        btnNext.classList.add('hidden');
+        btnFinish.classList.remove('hidden');
+    } else {
+        btnNext.classList.remove('hidden');
+        btnFinish.classList.add('hidden');
+    }
+}
+
+window.nextSlide = () => {
+    saveCurrentSlide();
+    const totalRounds = parseInt(document.getElementById('round-setting').value);
+    if (currentEditRound < totalRounds) { currentEditRound++; renderSlide(); window.playSound('click'); } 
+    else { window.playSound('win'); alert("All rounds set! Click 'Create Room' to start."); }
+};
+
+window.prevSlide = () => {
+    saveCurrentSlide();
+    if (currentEditRound > 1) { currentEditRound--; renderSlide(); window.playSound('click'); }
+};
+
+function saveCurrentSlide() {
+    const q = document.getElementById('slide-q').value;
+    const inputs = document.querySelectorAll('.slide-item');
+    const items = Array.from(inputs).map(i => i.value);
+    let lockedIdx = null;
+    if(document.getElementById('slide-lock').checked) {
+        const checked = document.querySelector('input[name="correct-ans"]:checked');
+        if(checked) checked.checked = true; // Wait, this logic was slightly buggy in old versions but keeping structure.
+        // Actually fixing this logic slightly to match previous working versions:
+        if(checked) lockedIdx = parseInt(checked.value);
+        if(document.getElementById('game-type').value === 'ranking') lockedIdx = -1;
+    }
+    customDeckData[currentEditRound - 1] = { q: q, items: items, lockedIdx: lockedIdx };
+}
+
 // SCORE ANIMATION HELPER
 function animateValue(obj, start, end, duration) {
     let startTimestamp = null;
@@ -446,4 +448,101 @@ function animateValue(obj, start, end, duration) {
         }
     };
     window.requestAnimationFrame(step);
+}
+
+// ... (Rest of game functions: checkCompletion, showResults - same as before) ...
+function checkCompletion() {
+    get(ref(db, `games/${myRoom}`)).then(snap => {
+        const d = snap.val();
+        const pIds = Object.keys(d.players);
+        const answers = d.answers || {};
+
+        if(Object.keys(answers).length >= pIds.length) {
+            const hostId = Object.keys(d.players).find(k => d.players[k].name === d.host);
+            const hostAns = answers[hostId].val;
+            let updates = {};
+
+            pIds.forEach(pid => {
+                if(pid === hostId) return;
+                const pAns = answers[pid].val;
+                let roundScore = 0;
+                
+                if (pAns === "SKIPPED") roundScore = 0;
+                else if(d.type === 'trivia') roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
+                else {
+                    let dist = 0;
+                    hostAns.forEach((item, idx) => dist += Math.abs(idx - pAns.indexOf(item)));
+                    const max = (hostAns.length**2)/2;
+                    roundScore = Math.floor(((max - dist)/max)*100);
+                }
+                
+                const oldScore = d.players[pid].score || 0;
+                const newAvg = Math.floor(((oldScore * (d.currRound - 1)) + roundScore) / d.currRound);
+                updates[`players/${pid}/score`] = newAvg;
+            });
+
+            if (d.currRound < d.maxRounds) {
+                updates['currRound'] = d.currRound + 1;
+                updates['answers'] = null;
+                updates['roundData'] = d.gameDeck[d.currRound]; 
+                update(ref(db, `games/${myRoom}`), updates);
+            } else {
+                updates['state'] = 'finished';
+                update(ref(db, `games/${myRoom}`), updates);
+            }
+        } else {
+            setTimeout(checkCompletion, 1000);
+        }
+    });
+}
+
+function showResults(data) {
+    document.getElementById('game-screen').classList.add('hidden');
+    document.getElementById('result-screen').classList.remove('hidden');
+    document.getElementById('res-final').classList.remove('hidden'); 
+    document.getElementById('res-round').classList.add('hidden'); 
+
+    const players = Object.values(data.players).filter(p => p.name !== data.host);
+    players.sort((a,b) => b.score - a.score);
+    const topScore = players[0] ? players[0].score : 0;
+
+    const targetScore = parseInt(data.target) || 90;
+
+    if((data.diff === 'standard' && topScore < targetScore) || topScore < 25) {
+        window.playSound('fail');
+    } else {
+        window.playSound('win');
+        if(topScore >= 50) {
+            confetti({
+                particleCount: 150,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#4F46E5', '#10B981', '#F59E0B']
+            });
+        }
+    }
+
+    if(data.mode === '1v1') {
+        document.getElementById('res-1v1').classList.remove('hidden');
+        const el = document.getElementById('score-1v1');
+        
+        animateValue(el, 0, topScore, 2000); 
+        
+        let msg = topScore > 80 ? "Perfect Match!" : "Keep Trying!";
+        if(data.diff === 'standard') msg = topScore >= targetScore ? "PASSED!" : "FAILED!";
+        
+        if ((data.diff === 'standard' && topScore < targetScore) || topScore < 25) {
+            el.className = "text-8xl font-black text-red-500 mb-2"; 
+        } else {
+            el.className = "text-8xl font-black text-green-600 mb-2"; 
+        }
+        document.getElementById('msg-1v1').innerText = msg;
+    } else {
+        document.getElementById('res-party').classList.remove('hidden');
+        document.getElementById('leaderboard').innerHTML = players.map((p, i) => {
+            let color = "text-gray-800 dark:text-gray-200";
+            if(data.diff === 'standard') color = p.score >= targetScore ? "text-green-600" : "text-red-500";
+            return `<div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-4 rounded-xl border border-gray-100 dark:border-gray-600 animate-popIn" style="animation-delay: ${i*100}ms"><span class="font-bold text-gray-600 dark:text-gray-300">#${i+1} ${p.name}</span><span class="font-black ${color} text-xl">${p.score}%</span></div>`;
+        }).join('');
+    }
 }

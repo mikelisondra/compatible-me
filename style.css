@@ -27,10 +27,12 @@ body {
 /* Utility */
 .hidden { display: none !important; }
 
+/* Force override to ensure Dark Mode icons show correctly vs Tailwind */
 html.dark .icon-moon { display: none !important; }
 html.dark .icon-sun { display: block !important; }
 .icon-sun { display: none; }
 
+/* Global Smooth Transitions */
 * { transition-property: color, background-color, border-color, transform, opacity, box-shadow; transition-duration: 200ms; }
 
 /* ANIMATIONS */
@@ -41,7 +43,7 @@ html.dark .icon-sun { display: block !important; }
     50% { transform: scale(1.2); }
     100% { transform: scale(1); }
 }
-.heart-pulse { animation: heartbeat 1s infinite ease-in-out; }
+.heart-pulse { animation: heartbeat 1.2s infinite ease-in-out; }
 
 /* Party Pop for Party Mode */
 @keyframes partyPop {
