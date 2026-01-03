@@ -35,6 +35,7 @@ let setupSortable = null;
 let currentRenderedRound = 0;
 let guestHasStartedRound = false; 
 
+// CONTENT DATA
 const CONTENT = {
     ranking: {
         "foods": ["Pizza", "Sushi", "Tacos", "Burgers", "Pasta"],
@@ -60,7 +61,7 @@ async function initGame() {
         app = initializeApp(config);
         db = getDatabase(app);
         console.log("Game Connected!");
-    } catch (error) { console.warn("DB Offline"); }
+    } catch (error) { console.warn("DB Offline or Fetch Failed"); }
 }
 initGame();
 
@@ -109,27 +110,22 @@ window.swapRoles = () => {
     }
 };
 
-window.toggleMute = () => {
-    isMuted = !isMuted;
-    const btn = document.getElementById('mute-btn');
-    if(isMuted) { audio.bgm.pause(); btn.innerText = "🔇 Muted"; } 
-    else { audio.bgm.play().catch(e=>{}); btn.innerText = "🔊 Sound On"; audioStarted = true; }
-};
-
 window.playSound = (k) => {
     if(!isMuted && audio[k]) { audio[k].currentTime = 0; audio[k].play().catch(e=>{}); }
 };
 
+// GAME SETUP LOGIC
 window.selectMode = (m) => {
     settings.mode = m;
     const b1 = document.getElementById('btn-1v1');
     const bP = document.getElementById('btn-party');
+    
     if(m==='1v1') {
-        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-indigo-600 bg-indigo-50 text-indigo-700";
-        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-gray-200 text-gray-400";
+        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300";
+        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400";
     } else {
-        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-indigo-600 bg-indigo-50 text-indigo-700";
-        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-gray-200 text-gray-400";
+        bP.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300";
+        b1.className = "mode-btn p-3 rounded-xl border-2 font-bold flex flex-col items-center gap-1 transition border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400";
     }
     playSound('click');
 };
@@ -238,6 +234,7 @@ function saveCurrentSlide() {
     customDeckData[currentEditRound - 1] = { q: q, items: items, lockedIdx: lockedIdx };
 }
 
+// MULTIPLAYER LOGIC
 window.createGame = () => {
     if(!db) return alert("Database Offline.");
     playSound('click');
@@ -289,7 +286,6 @@ window.joinGame = () => {
     get(ref(db, `games/${myRoom}`)).then(snap => {
         if(snap.exists()) {
             const d = snap.val();
-            // Security Fixes
             if (d.state !== 'lobby') return alert("Game already in progress!");
             const pCount = Object.keys(d.players || {}).length;
             if (d.mode === '1v1' && pCount >= 2) return alert("Room is full! (1v1 Mode)");
@@ -324,7 +320,7 @@ function enterLobby() {
 
         const pList = Object.values(data.players || {});
         document.getElementById('player-list').innerHTML = pList.map(p => `
-            <li class="bg-gray-100 p-2 rounded flex items-center gap-2">
+            <li class="bg-gray-100 dark:bg-gray-700 dark:text-gray-200 p-2 rounded flex items-center gap-2">
                 <div class="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span class="font-bold">${p.name}</span>
                 <span class="ml-auto font-mono text-gray-400">${p.score}%</span>
@@ -340,7 +336,6 @@ function enterLobby() {
                 startGameUI(data);
             }
             
-            // Logic for Sync Mode: Wait for host answer
             if (!isHost && !guestHasStartedRound && data.syncMode) {
                 const hostId = Object.keys(data.players).find(k => data.players[k].name === data.host);
                 if (data.answers && data.answers[hostId]) {
@@ -359,6 +354,7 @@ window.startGame = () => {
     update(ref(db, `games/${myRoom}`), { state: 'playing' });
 };
 
+// GAMEPLAY SCREEN LOGIC
 function startGameUI(data) {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
@@ -384,9 +380,7 @@ function startGameUI(data) {
         
         document.getElementById('q-text').innerText = text;
         
-        // Sync Mode Check
         if(data.syncMode) {
-            // Wait for host
             rList.classList.add('hidden');
             tGrid.classList.add('hidden');
             submitBtn.classList.add('hidden');
@@ -394,7 +388,6 @@ function startGameUI(data) {
             document.getElementById('status-msg').innerText = "Waiting for Host to lock answer...";
             return; 
         } else {
-            // Start immediately
             guestHasStartedRound = true; 
             revealGuestUI(data); 
         }
@@ -422,7 +415,7 @@ function renderGameInputs(data, rList, tGrid) {
         
         items.forEach(i => {
             const li = document.createElement('li');
-            li.className = "draggable-item bg-white border-2 border-gray-100 p-4 rounded-xl shadow-sm flex justify-between font-bold text-gray-700";
+            li.className = "draggable-item bg-white dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200 border-2 border-gray-100 p-4 rounded-xl shadow-sm flex justify-between font-bold text-gray-700";
             li.innerHTML = `<span>${i}</span><span class="text-gray-300">☰</span>`;
             li.dataset.value = i;
             li.onmousedown = () => playSound('click');
@@ -433,7 +426,7 @@ function renderGameInputs(data, rList, tGrid) {
         tGrid.classList.remove('hidden'); rList.classList.add('hidden'); tGrid.innerHTML = "";
         data.roundData.items.forEach(opt => {
             const btn = document.createElement('button');
-            btn.className = "w-full bg-white border-2 border-gray-100 p-6 rounded-xl font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-600 transition text-gray-700";
+            btn.className = "w-full bg-white dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 p-6 rounded-xl font-bold shadow-sm hover:border-indigo-500 hover:text-indigo-600 transition text-gray-700 dark:text-gray-200";
             btn.innerText = opt;
             btn.onclick = () => { playSound('click'); submitAnswer(opt, btn); };
             tGrid.appendChild(btn);
@@ -564,9 +557,135 @@ function showResults(data) {
     } else {
         document.getElementById('res-party').classList.remove('hidden');
         document.getElementById('leaderboard').innerHTML = players.map((p, i) => {
-            let color = "text-gray-800";
+            let color = "text-gray-800 dark:text-gray-200";
             if(data.diff === 'standard') color = p.score >= targetScore ? "text-green-600" : "text-red-500";
-            return `<div class="flex justify-between items-center bg-gray-50 p-4 rounded-xl border border-gray-100"><span class="font-bold text-gray-600">#${i+1} ${p.name}</span><span class="font-black ${color} text-xl">${p.score}%</span></div>`;
+            return `<div class="flex justify-between items-center bg-gray-50 dark:bg-gray-700 p-4 rounded-xl border border-gray-100 dark:border-gray-600"><span class="font-bold text-gray-600 dark:text-gray-300">#${i+1} ${p.name}</span><span class="font-black ${color} text-xl">${p.score}%</span></div>`;
         }).join('');
     }
+}
+
+// UTILITY & SETTINGS (MODALS & TOGGLES)
+
+// SVG Icons
+const ICON_MOON = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>`;
+const ICON_SUN = `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 3v2.25m6.364.386l-1.591 1.591M21 12h-2.25m-.386 6.364l-1.591-1.591M12 18.75V21m-4.773-4.227l-1.591 1.591M5.25 12H3m4.227-4.773L5.636 5.636M15.75 12a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0z" /></svg>`;
+
+window.openSettings = (e) => {
+    e.stopPropagation();
+    const btn = document.getElementById('gear-btn');
+    const menu = document.getElementById('settings-menu');
+    
+    // Animate Button Out
+    btn.classList.add('scale-0', 'opacity-0', 'rotate-180');
+    // Animate Menu In
+    menu.classList.remove('invisible', 'scale-90', 'opacity-0');
+    menu.classList.add('scale-100', 'opacity-100');
+    
+    playSound('click');
+};
+
+window.closeSettings = () => {
+    const btn = document.getElementById('gear-btn');
+    const menu = document.getElementById('settings-menu');
+    
+    if (!menu.classList.contains('invisible')) {
+        // Animate Menu Out
+        menu.classList.remove('scale-100', 'opacity-100');
+        menu.classList.add('scale-90', 'opacity-0');
+        setTimeout(() => menu.classList.add('invisible'), 300);
+        
+        // Animate Button In
+        btn.classList.remove('scale-0', 'opacity-0', 'rotate-180');
+        btn.classList.add('scale-100', 'opacity-100', 'rotate-0');
+    }
+};
+
+window.toggleMute = () => {
+    isMuted = !isMuted;
+    const txt = document.getElementById('menu-sound-text');
+    const icon = document.getElementById('menu-sound-icon');
+    
+    if(isMuted) { 
+        audio.bgm.pause(); 
+        if(txt) txt.innerText = "Sound Off"; 
+        if(icon) icon.innerText = "🔇";
+    } else { 
+        audio.bgm.play().catch(e=>{}); 
+        if(txt) txt.innerText = "Sound On"; 
+        if(icon) icon.innerText = "🔊";
+        audioStarted = true; 
+    }
+};
+
+window.toggleAbout = () => {
+    const modal = document.getElementById('about-modal');
+    const content = document.getElementById('about-content');
+
+    if (modal.classList.contains('invisible')) {
+        playSound('click');
+        modal.classList.remove('invisible');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+        closeSettings(); 
+    } else {
+        playSound('click');
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('invisible');
+        }, 300);
+    }
+};
+
+window.toggleMechanics = () => {
+    const modal = document.getElementById('mechanics-modal');
+    const content = document.getElementById('mechanics-content');
+
+    if (modal.classList.contains('invisible')) {
+        playSound('click');
+        modal.classList.remove('invisible');
+        setTimeout(() => {
+            modal.classList.remove('opacity-0');
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        }, 10);
+        closeSettings(); 
+    } else {
+        playSound('click');
+        modal.classList.add('opacity-0');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('invisible');
+        }, 300);
+    }
+};
+
+window.toggleDarkMode = () => {
+    const toggle = document.getElementById('dark-toggle');
+    const html = document.documentElement;
+    const icon = document.getElementById('menu-dark-icon');
+    
+    if (toggle.checked) {
+        html.classList.add('dark');
+        localStorage.setItem('theme', 'dark');
+        if(icon) icon.innerHTML = ICON_SUN;
+    } else {
+        html.classList.remove('dark');
+        localStorage.setItem('theme', 'light');
+        if(icon) icon.innerHTML = ICON_MOON;
+    }
+    playSound('click');
+};
+
+if (localStorage.getItem('theme') === 'dark') {
+    document.documentElement.classList.add('dark');
+    const toggle = document.getElementById('dark-toggle');
+    const icon = document.getElementById('menu-dark-icon');
+    if(toggle) toggle.checked = true;
+    if(icon) icon.innerHTML = ICON_SUN;
 }
