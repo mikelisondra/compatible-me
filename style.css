@@ -1,5 +1,12 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
 
+/* Base Styles */
+body {
+    font-family: 'Inter', sans-serif;
+    user-select: none;
+}
+
+/* Drag & Drop Styles */
 .draggable-item { 
     cursor: grab; 
     transition: background-color 0.2s, transform 0.1s;
@@ -12,10 +19,52 @@
     background-color: #e5e7eb; 
     transform: scale(0.98);
 }
+.sortable-ghost {
+    opacity: 0.5;
+    background-color: #f3f4f6;
+}
+
+/* Utility */
 .hidden { display: none !important; }
+
+html.dark .icon-moon { display: none !important; }
+html.dark .icon-sun { display: block !important; }
+.icon-sun { display: none; }
+
+* { transition-property: color, background-color, border-color, transform, opacity, box-shadow; transition-duration: 200ms; }
+
+/* ANIMATIONS */
+
+/* Heartbeat for 1v1 Mode */
 @keyframes heartbeat {
     0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
+    50% { transform: scale(1.2); }
     100% { transform: scale(1); }
 }
-.heart-pulse { animation: heartbeat 1.5s infinite; }
+.heart-pulse { animation: heartbeat 1s infinite ease-in-out; }
+
+/* Party Pop for Party Mode */
+@keyframes partyPop {
+    0% { transform: rotate(0deg) scale(1); }
+    25% { transform: rotate(-15deg) scale(1.1); }
+    50% { transform: rotate(10deg) scale(1.1); }
+    75% { transform: rotate(-5deg) scale(1.05); }
+    100% { transform: rotate(0deg) scale(1); }
+}
+.party-pop { animation: partyPop 0.8s infinite ease-in-out; }
+
+/* Pop In for List Items */
+@keyframes popIn {
+    0% { transform: scale(0); opacity: 0; }
+    70% { transform: scale(1.1); opacity: 1; }
+    100% { transform: scale(1); }
+}
+.animate-popIn { animation: popIn 0.4s ease-out forwards; }
+
+/* Popup Message */
+@keyframes popUp {
+    0% { transform: scale(0) translateY(10px); opacity: 0; }
+    80% { transform: scale(1.1) translateY(-5px); opacity: 1; }
+    100% { transform: scale(1) translateY(0); }
+}
+.animate-popup { animation: popUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
