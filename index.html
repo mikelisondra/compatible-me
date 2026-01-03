@@ -19,219 +19,195 @@
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.14.0/Sortable.min.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Force override to ensure icons show */
+        html.dark .icon-moon { display: none !important; }
+        html.dark .icon-sun { display: block !important; }
+        .icon-sun { display: none; }
+        
+        /* Smooth transitions for everything */
+        * { transition-property: color, background-color, border-color, transform, opacity; transition-duration: 200ms; }
+    </style>
 </head>
 <body class="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-300">
 
     <div class="absolute top-4 right-4 z-50">
-        
-        <button id="gear-btn" onclick="openSettings(event)" class="bg-white dark:bg-gray-800 dark:text-white shadow-md p-3 rounded-full text-xl hover:bg-gray-100 dark:hover:bg-gray-700 transition-all duration-300 border dark:border-gray-700 transform scale-100 opacity-100 rotate-0">
+        <button id="gear-btn" onclick="openSettings(event)" class="bg-white dark:bg-gray-800 dark:text-white shadow-md p-3 rounded-full text-xl hover:bg-gray-100 dark:hover:bg-gray-700 border dark:border-gray-700 transform hover:scale-110 hover:rotate-90 active:scale-95">
             ⚙️
         </button>
 
         <div id="settings-menu" onclick="event.stopPropagation()" class="absolute top-0 right-0 w-72 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-700 overflow-hidden transform origin-top-right transition-all duration-300 scale-90 opacity-0 invisible">
-            
             <div class="bg-indigo-600 p-4 flex justify-between items-center">
                 <span class="text-white font-black tracking-widest text-sm">SETTINGS</span>
-                <button onclick="closeSettings()" class="text-white hover:text-indigo-200 font-bold text-xl">&times;</button>
+                <button onclick="closeSettings()" class="text-white hover:text-indigo-200 font-bold text-xl hover:scale-125">&times;</button>
             </div>
-
             <div class="py-2">
-                
                 <div class="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700 transition cursor-pointer" onclick="document.getElementById('dark-toggle').click()">
                     <div class="flex items-center gap-3 text-sm font-bold text-gray-700 dark:text-gray-200">
-                        <span id="menu-dark-icon" class="text-gray-500 dark:text-indigo-400">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" />
-                            </svg>
-                        </span>
+                        <svg class="w-5 h-5 text-gray-500 icon-moon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.718 9.718 0 0118 15.75c-5.385 0-9.75-4.365-9.75-9.75 0-1.33.266-2.597.748-3.752A9.753 9.753 0 003 11.25C3 16.635 7.365 21 12.75 21a9.753 9.753 0 009.002-5.998z" /></svg>
+                        <svg class="w-5 h-5 text-indigo-400 icon-sun" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.25a.75.75 0 01.75.75v2.25a.75.75 0 01-1.5 0V3a.75.75 0 01.75-.75zM7.5 12a4.5 4.5 0 119 0 4.5 4.5 0 01-9 0zM18.894 6.166a.75.75 0 00-1.06-1.06l-1.591 1.591a.75.75 0 101.06 1.06l1.591-1.591zM21.75 12a.75.75 0 01-.75.75h-2.25a.75.75 0 010-1.5H21a.75.75 0 01.75.75zM17.834 18.894a.75.75 0 001.06-1.06l-1.591 1.591a.75.75 0 10-1.06 1.06l1.591 1.591zM12 18a.75.75 0 01.75.75V21a.75.75 0 01-1.5 0v-2.25A.75.75 0 0112 18zM7.758 17.303a.75.75 0 00-1.061-1.06l-1.591 1.591a.75.75 0 001.06 1.061l1.591-1.591zM6 12a.75.75 0 01-.75.75H3a.75.75 0 010-1.5h2.25A.75.75 0 016 12zM6.697 7.757a.75.75 0 001.06-1.06l-1.59-1.591a.75.75 0 00-1.061 1.06l1.59 1.591z" /></svg>
                         Dark Mode
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer pointer-events-none">
                         <input type="checkbox" id="dark-toggle" class="sr-only peer" onchange="toggleDarkMode()">
-                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                        <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 dark:border-gray-600 peer-checked:bg-indigo-600"></div>
                     </label>
                 </div>
 
-                <button onclick="toggleMute()" class="w-full text-left px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition">
-                    <span id="menu-sound-icon">🔊</span> <span id="menu-sound-text">Sound On</span>
+                <button onclick="toggleMute()" class="w-full text-left px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3">
+                    <span id="icon-sound-on" class="flex items-center"><svg class="w-5 h-5 text-gray-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM18.584 5.106a.75.75 0 011.06 0c3.808 3.807 3.808 9.98 0 13.788a.75.75 0 11-1.06-1.06 2.75 2.75 0 010-11.668.75.75 0 010-1.06z" /><path d="M15.932 7.757a.75.75 0 011.061 0 6 6 0 010 8.486.75.75 0 01-1.06-1.061 4.5 4.5 0 000-6.364.75.75 0 010-1.06z" /></svg></span>
+                    <span id="icon-sound-off" class="hidden flex items-center"><svg class="w-5 h-5 text-gray-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.5 4.06c0-1.336-1.616-2.005-2.56-1.06l-4.5 4.5H4.508c-1.141 0-2.318.664-2.66 1.905A9.76 9.76 0 001.5 12c0 .898.121 1.768.35 2.595.341 1.24 1.518 1.905 2.659 1.905h1.93l4.5 4.5c.945.945 2.561.276 2.561-1.06V4.06zM17.78 9.22a.75.75 0 10-1.06 1.06L18.44 12l-1.72 1.72a.75.75 0 001.06 1.06l1.72-1.72 1.72 1.72a.75.75 0 101.06-1.06L20.56 12l1.72-1.72a.75.75 0 00-1.06-1.06l-1.72 1.72-1.72-1.72z" /></svg></span>
+                    <span id="menu-sound-text">Sound On</span>
                 </button>
 
                 <div class="border-t border-gray-100 dark:border-gray-700 my-2"></div>
 
-                <button onclick="toggleMechanics()" class="w-full text-left px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition">
-                    <span>📖</span> How to Play
+                <button onclick="toggleMechanics()" class="w-full text-left px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3">
+                    <svg class="w-5 h-5 text-gray-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                    How to Play
                 </button>
 
-                <button onclick="toggleAbout()" class="w-full text-left px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3 transition">
-                    <span>ℹ️</span> About
+                <button onclick="toggleAbout()" class="w-full text-left px-6 py-3 text-sm font-bold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 flex items-center gap-3">
+                    <svg class="w-5 h-5 text-gray-500 dark:text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                    About
                 </button>
-
             </div>
         </div>
     </div>
 
     <div class="w-full max-w-md p-6 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border-t-8 border-indigo-600 transition-all duration-300 relative z-0">
-        <h1 class="text-4xl font-black text-center text-indigo-600 dark:text-indigo-400 mb-1 tracking-tighter">Compatible Me<span class="text-sm align-top text-gray-400">.io</span></h1>
+        <h1 class="text-4xl font-black text-center text-indigo-600 dark:text-indigo-400 mb-1 tracking-tighter hover:scale-105 cursor-default">Compatible Me<span class="text-sm align-top text-gray-400">.io</span></h1>
         
         <div id="start-screen">
             <p class="text-center text-gray-400 text-xs font-bold uppercase mb-6 tracking-widest">Social Sync Game</p>
-            
             <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Nickname</label>
-            <input type="text" id="username" placeholder="Enter Your Name" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl mb-6 text-center font-bold text-lg focus:border-indigo-500 outline-none text-indigo-600 transition-colors">
+            <input type="text" id="username" placeholder="Enter Your Name" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl mb-6 text-center font-bold text-lg focus:border-indigo-500 outline-none text-indigo-600">
             
             <div class="space-y-3">
-                <button onclick="goToHost()" class="w-full p-4 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-600 active:bg-indigo-50 active:border-indigo-100 dark:active:bg-gray-800 transition group">
+                <button onclick="goToHost()" class="w-full p-4 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl flex items-center justify-between hover:bg-indigo-50 dark:hover:bg-gray-600 hover:border-indigo-200 hover:shadow-lg active:scale-95 group">
                     <span class="text-left">
-                        <span class="block font-black text-gray-600 dark:text-gray-200 group-active:text-indigo-700 dark:group-active:text-indigo-300 text-lg">👑 HOST A GAME</span>
-                        <span class="block text-xs text-gray-400 group-active:text-indigo-400 dark:group-active:text-indigo-200 font-bold">Create room & settings</span>
+                        <span class="block font-black text-gray-600 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 text-lg">👑 HOST A GAME</span>
+                        <span class="block text-xs text-gray-400 group-hover:text-indigo-400 dark:group-hover:text-indigo-200 font-bold">Create room & settings</span>
                     </span>
-                    <span class="text-2xl group-hover:scale-110 transition">➡️</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-gray-300 group-hover:text-indigo-600 dark:text-gray-500 dark:group-hover:text-white transform group-hover:translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </button>
 
-                <button onclick="goToGuest()" class="w-full p-4 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-600 transition group">
+                <button onclick="goToGuest()" class="w-full p-4 bg-white dark:bg-gray-700 border-2 border-gray-200 dark:border-gray-600 rounded-xl flex items-center justify-between hover:bg-indigo-50 dark:hover:bg-gray-600 hover:border-indigo-200 hover:shadow-lg active:scale-95 group">
                     <span class="text-left">
-                        <span class="block font-black text-gray-600 dark:text-gray-200 text-lg">👋 JOIN A ROOM</span>
-                        <span class="block text-xs text-gray-400 font-bold">Enter a code to play</span>
+                        <span class="block font-black text-gray-600 dark:text-gray-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 text-lg">👋 JOIN A ROOM</span>
+                        <span class="block text-xs text-gray-400 group-hover:text-indigo-400 font-bold">Enter a code to play</span>
                     </span>
-                    <span class="text-2xl group-hover:scale-110 transition">➡️</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-6 h-6 text-gray-300 group-hover:text-indigo-600 dark:text-gray-500 dark:group-hover:text-white transform group-hover:translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
                 </button>
             </div>
         </div>
 
         <div id="host-panel" class="hidden">
-            <button onclick="goBack()" class="mb-4 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center gap-1">⬅ BACK</button>
+            <button onclick="goBack()" class="group mb-4 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-black text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transform group-hover:-translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                BACK
+            </button>
+
             <h2 class="text-xl font-black text-indigo-900 dark:text-white mb-4">ROOM SETTINGS</h2>
 
-            <div class="grid grid-cols-2 gap-3 mb-4">
-                <button onclick="selectMode('1v1')" id="btn-1v1" class="mode-btn p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300 font-bold flex flex-col items-center gap-1 transition"><span class="text-2xl">❤️</span><span class="text-xs">1v1 Duel</span></button>
-                <button onclick="selectMode('party')" id="btn-party" class="mode-btn p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400 font-bold flex flex-col items-center gap-1 transition"><span class="text-2xl">🎉</span><span class="text-xs">Party</span></button>
+            <div class="flex mb-4 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
+                <button onclick="setDiff('casual')" id="btn-casual" class="flex-1 py-2 rounded-md font-bold text-xs bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-300 active:scale-95">Casual</button>
+                <button onclick="setDiff('standard')" id="btn-standard" class="flex-1 py-2 rounded-md font-bold text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 active:scale-95">Challenge</button>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
-                <select id="game-type" onchange="toggleCustomInputs()" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700"><option value="ranking">📊 Ranking</option><option value="trivia">❓ Trivia</option></select>
-                <select id="topic-source" onchange="toggleCustomInputs()" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700"><option value="random">🎲 Random</option><option value="custom">✏️ Custom</option></select>
+                <button onclick="selectMode('1v1')" id="btn-1v1" class="mode-btn p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 dark:bg-gray-700 dark:border-indigo-400 text-indigo-700 dark:text-indigo-300 font-bold flex flex-col items-center gap-1 hover:scale-105 active:scale-95 hover:shadow-md"><span class="text-2xl animate-bounce">❤️</span><span class="text-xs">1v1 Duel</span></button>
+                <button onclick="selectMode('party')" id="btn-party" class="mode-btn p-3 rounded-xl border-2 border-gray-200 dark:border-gray-600 dark:text-gray-400 text-gray-400 font-bold flex flex-col items-center gap-1 hover:scale-105 active:scale-95 hover:shadow-md hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600"><span class="text-2xl group-hover:rotate-12">🎉</span><span class="text-xs">Party</span></button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 mb-4">
+                <select id="game-type" onchange="toggleCustomInputs()" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none cursor-pointer"><option value="ranking">📊 Ranking</option><option value="trivia">❓ Trivia</option></select>
+                <select id="topic-source" onchange="toggleCustomInputs()" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700 hover:border-indigo-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 outline-none cursor-pointer"><option value="random">🎲 Random</option><option value="custom">✏️ Custom</option></select>
             </div>
 
             <div class="grid grid-cols-2 gap-3 mb-4">
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Rounds</label>
-                    <select id="round-setting" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700">
-                        <option value="1">1 Round</option>
-                        <option value="3">3 Rounds</option>
-                        <option value="5">5 Rounds</option>
-                        <option value="10">10 Rounds</option>
+                    <select id="round-setting" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700 hover:border-indigo-400 focus:border-indigo-500 outline-none cursor-pointer">
+                        <option value="1">1 Round</option><option value="3">3 Rounds</option><option value="5">5 Rounds</option><option value="10">10 Rounds</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-bold text-gray-400 uppercase mb-1">Timer</label>
-                    <select id="timer-setting" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700">
-                        <option value="0">No Timer</option>
-                        <option value="10">10 Seconds</option>
-                        <option value="20">20 Seconds</option>
-                        <option value="30">30 Seconds</option>
+                    <select id="timer-setting" class="w-full p-2 border-2 dark:border-gray-600 rounded font-bold text-gray-700 dark:text-white text-sm bg-white dark:bg-gray-700 hover:border-indigo-400 focus:border-indigo-500 outline-none cursor-pointer">
+                        <option value="0">No Timer</option><option value="10">10 Seconds</option><option value="20">20 Seconds</option><option value="30">30 Seconds</option>
                     </select>
                 </div>
             </div>
 
-            <div class="mb-2 p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-3">
-                    <input type="checkbox" id="sync-mode" class="w-5 h-5 accent-indigo-600 cursor-pointer" checked>
-                    <label for="sync-mode" class="text-gray-700 dark:text-gray-200 font-bold text-sm cursor-pointer select-none">Sync Timers</label>
-                </div>
-                
+            <div class="mb-2 p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-between shadow-sm hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600 cursor-pointer">
+                <div class="flex items-center gap-3"><input type="checkbox" id="sync-mode" class="w-5 h-5 accent-indigo-600 cursor-pointer" checked><label for="sync-mode" class="text-gray-700 dark:text-gray-200 font-bold text-sm cursor-pointer select-none">Sync Timers</label></div>
                 <div class="group relative flex items-center justify-center ml-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-help transition-colors">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                    </svg>
-                    <div class="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 dark:bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center leading-relaxed font-medium">
-                        Guests wait for Host to answer first.
-                        <div class="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-gray-800 dark:border-t-gray-900"></div>
-                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-help"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                    <div class="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 dark:bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center leading-relaxed font-medium">Guests wait for Host to answer first.<div class="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-gray-800 dark:border-t-gray-900"></div></div>
                 </div>
             </div>
 
-            <div class="mb-4 p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-between shadow-sm">
-                <div class="flex items-center gap-3">
-                    <input type="checkbox" id="simple-mode" class="w-5 h-5 accent-indigo-600 cursor-pointer">
-                    <label for="simple-mode" class="text-gray-700 dark:text-gray-200 font-bold text-sm cursor-pointer select-none">Simplified Text</label>
-                </div>
-
+            <div class="mb-4 p-3 border-2 border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 flex items-center justify-between shadow-sm hover:border-indigo-300 hover:bg-indigo-50 dark:hover:bg-gray-600 cursor-pointer">
+                <div class="flex items-center gap-3"><input type="checkbox" id="simple-mode" class="w-5 h-5 accent-indigo-600 cursor-pointer"><label for="simple-mode" class="text-gray-700 dark:text-gray-200 font-bold text-sm cursor-pointer select-none">Simplified Text</label></div>
                 <div class="group relative flex items-center justify-center ml-2">
-                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-help transition-colors">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" />
-                    </svg>
-                    <div class="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 dark:bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center leading-relaxed font-medium">
-                        Shows just the question text for a cleaner look.
-                        <div class="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-gray-800 dark:border-t-gray-900"></div>
-                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor" class="w-5 h-5 text-gray-400 hover:text-indigo-600 dark:hover:text-indigo-400 cursor-help"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+                    <div class="absolute bottom-full right-0 mb-2 w-48 p-2 bg-gray-800 dark:bg-gray-900 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 text-center leading-relaxed font-medium">Shows just the question text for a cleaner look.<div class="absolute top-full right-2 -mt-1 border-4 border-transparent border-t-gray-800 dark:border-t-gray-900"></div></div>
                 </div>
             </div>
 
             <div id="custom-inputs" class="hidden mb-6 bg-indigo-50 dark:bg-gray-900 p-4 rounded-xl border-2 border-indigo-100 dark:border-gray-700 relative transition-all">
                 <div class="flex justify-between items-center mb-3">
                     <span id="slide-counter" class="bg-indigo-200 text-indigo-700 text-xs font-bold px-2 py-1 rounded">ROUND 1</span>
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <span class="text-xs font-bold text-gray-400 uppercase">Lock Answer?</span>
-                        <input type="checkbox" id="slide-lock" onchange="toggleLock()" class="accent-indigo-600 w-4 h-4">
-                    </label>
+                    <label class="flex items-center gap-2 cursor-pointer group"><span class="text-xs font-bold text-gray-400 group-hover:text-indigo-500 uppercase transition-colors">Lock Answer?</span><input type="checkbox" id="slide-lock" onchange="toggleLock()" class="accent-indigo-600 w-4 h-4"></label>
                 </div>
                 <input type="text" id="slide-q" class="w-full p-3 border-2 border-indigo-100 dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded-lg mb-3 text-sm font-bold text-indigo-900 focus:border-indigo-500 outline-none" placeholder="Type Question Here...">
                 
                 <div id="setup-list" class="grid grid-cols-1 gap-2 mb-4">
-                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600">
-                        <span class="drag-handle cursor-move text-gray-400 px-1">☰</span>
-                        <input type="radio" name="correct-ans" value="0" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 1">
-                    </div>
-                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600">
-                        <span class="drag-handle cursor-move text-gray-400 px-1">☰</span>
-                        <input type="radio" name="correct-ans" value="1" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 2">
-                    </div>
-                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600">
-                        <span class="drag-handle cursor-move text-gray-400 px-1">☰</span>
-                        <input type="radio" name="correct-ans" value="2" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 3">
-                    </div>
-                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600">
-                        <span class="drag-handle cursor-move text-gray-400 px-1">☰</span>
-                        <input type="radio" name="correct-ans" value="3" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 4">
-                    </div>
-                    <div id="cont-item-5" class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600 hidden">
-                        <span class="drag-handle cursor-move text-gray-400 px-1">☰</span>
-                        <input type="radio" name="correct-ans" value="4" class="ans-radio hidden accent-green-500 w-5 h-5">
-                        <input type="text" id="slide-item-5" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 5">
-                    </div>
+                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600 hover:border-indigo-300 transition-colors"><span class="drag-handle cursor-move text-gray-400 px-1 hover:text-indigo-500">☰</span><input type="radio" name="correct-ans" value="0" class="ans-radio hidden accent-green-500 w-5 h-5"><input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 1"></div>
+                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600 hover:border-indigo-300 transition-colors"><span class="drag-handle cursor-move text-gray-400 px-1 hover:text-indigo-500">☰</span><input type="radio" name="correct-ans" value="1" class="ans-radio hidden accent-green-500 w-5 h-5"><input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 2"></div>
+                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600 hover:border-indigo-300 transition-colors"><span class="drag-handle cursor-move text-gray-400 px-1 hover:text-indigo-500">☰</span><input type="radio" name="correct-ans" value="2" class="ans-radio hidden accent-green-500 w-5 h-5"><input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 3"></div>
+                    <div class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600 hover:border-indigo-300 transition-colors"><span class="drag-handle cursor-move text-gray-400 px-1 hover:text-indigo-500">☰</span><input type="radio" name="correct-ans" value="3" class="ans-radio hidden accent-green-500 w-5 h-5"><input type="text" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 4"></div>
+                    <div id="cont-item-5" class="flex items-center gap-2 bg-white dark:bg-gray-800 p-2 border rounded border-gray-200 dark:border-gray-600 hidden hover:border-indigo-300 transition-colors"><span class="drag-handle cursor-move text-gray-400 px-1 hover:text-indigo-500">☰</span><input type="radio" name="correct-ans" value="4" class="ans-radio hidden accent-green-500 w-5 h-5"><input type="text" id="slide-item-5" class="slide-item w-full text-sm outline-none bg-transparent dark:text-white" placeholder="Option 5"></div>
                 </div>
             
                 <div class="flex justify-between gap-2">
-                    <button onclick="prevSlide()" id="btn-prev" class="flex-1 py-2 rounded-lg font-bold text-xs bg-gray-200 text-gray-500 hover:bg-gray-300 transition disabled:opacity-50">⬅ PREV</button>
-                    <button onclick="nextSlide()" id="btn-next" class="flex-1 py-2 rounded-lg font-bold text-xs bg-indigo-600 text-white hover:bg-indigo-700 transition shadow-md">NEXT ROUND ➡</button>
-                </div>
-            </div>
+                    <button onclick="prevSlide()" id="btn-prev" class="group flex-1 py-3 rounded-xl font-black text-xs tracking-wider bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-sm active:scale-95">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform group-hover:-translate-x-1 group-disabled:translate-x-0"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" /></svg>
+                        PREV
+                    </button>
+                    
+                    <button onclick="nextSlide()" id="btn-next" class="group flex-1 py-3 rounded-xl font-black text-xs tracking-wider bg-indigo-600 text-white hover:bg-indigo-700 hover:shadow-lg active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md">
+                        <span>NEXT</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform group-hover:translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" /></svg>
+                    </button>
 
-            <div class="flex mb-4 bg-gray-100 dark:bg-gray-700 p-1 rounded-lg">
-                <button onclick="setDiff('casual')" id="btn-casual" class="flex-1 py-2 rounded-md font-bold text-xs bg-white dark:bg-gray-600 shadow text-indigo-600 dark:text-indigo-300 transition">Casual</button>
-                <button onclick="setDiff('standard')" id="btn-standard" class="flex-1 py-2 rounded-md font-bold text-xs text-gray-500 dark:text-gray-400 transition">Challenge</button>
+                    <button onclick="nextSlide()" id="btn-finish" class="hidden group flex-1 py-3 rounded-xl font-black text-xs tracking-wider bg-green-500 text-white hover:bg-green-600 hover:shadow-lg hover:shadow-green-500/30 active:scale-95 transition-all flex items-center justify-center gap-2 shadow-md">
+                        <span>FINISH</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="3" stroke="currentColor" class="w-5 h-5 animate-bounce"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                    </button>
+                </div>
             </div>
             
             <div id="slider-box" class="hidden mb-4 bg-indigo-50 dark:bg-gray-700 p-4 rounded-lg">
                 <div class="flex justify-between text-xs font-bold text-indigo-500 dark:text-indigo-300 mb-2"><span>PASSING GRADE</span> <span id="slider-val">90%</span></div>
-                <input type="range" id="target-slider" min="50" max="100" value="90" class="w-full accent-indigo-600" oninput="document.getElementById('slider-val').innerText = this.value + '%'">
+                <input type="range" id="target-slider" min="50" max="100" value="90" class="w-full accent-indigo-600 hover:accent-indigo-500 cursor-grab active:cursor-grabbing" oninput="document.getElementById('slider-val').innerText = this.value + '%'">
             </div>
 
-            <button onclick="createGame()" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-indigo-700 active:scale-95 transition text-lg">CREATE ROOM 🚀</button>
+            <button onclick="createGame()" class="w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-500 hover:shadow-indigo-500/50 hover:scale-[1.02] active:scale-95 transition-all duration-200 text-lg group">
+                CREATE ROOM <span class="group-hover:rotate-12 inline-block transition-transform">🚀</span>
+            </button>
         </div>
 
         <div id="guest-panel" class="hidden">
-            <button onclick="goBack()" class="mb-4 text-xs font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 flex items-center gap-1">⬅ BACK</button>
+            <button onclick="goBack()" class="group mb-4 px-3 py-2 rounded-lg flex items-center gap-2 text-xs font-black text-gray-400 hover:text-red-600 dark:text-gray-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-gray-700 transition-all duration-300 active:scale-95">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor" class="w-4 h-4 transition-transform duration-300 group-hover:-translate-x-1"><path stroke-linecap="round" stroke-linejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" /></svg>
+                BACK
+            </button>
             <h2 class="text-xl font-black text-gray-800 dark:text-white mb-6">JOIN A ROOM</h2>
-            
             <label class="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Room Code</label>
-            <input type="text" id="room-code" placeholder="CODE" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl uppercase text-center font-bold text-2xl tracking-widest mb-6 focus:border-indigo-500 outline-none">
-            
-            <button onclick="joinGame()" class="w-full bg-gray-800 dark:bg-gray-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-gray-900 active:scale-95 transition text-lg">JOIN GAME 🎮</button>
+            <input type="text" id="room-code" placeholder="CODE" class="w-full p-4 border-2 border-gray-200 dark:border-gray-600 dark:bg-gray-700 dark:text-white rounded-xl uppercase text-center font-bold text-2xl tracking-widest mb-6 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 outline-none transition-all">
+            <button onclick="joinGame()" class="w-full bg-gray-800 dark:bg-gray-600 text-white p-4 rounded-xl font-bold shadow-lg hover:bg-gray-900 active:scale-95 transition-all duration-200 text-lg">JOIN GAME 🎮</button>
         </div>
 
         <div id="lobby-screen" class="hidden text-center">
@@ -241,15 +217,11 @@
             <button id="start-btn" onclick="startGame()" class="hidden w-full bg-green-500 text-white p-4 rounded-xl font-bold shadow hover:bg-green-600 animate-bounce">START GAME</button>
             <p id="wait-msg" class="text-sm text-gray-400 italic">Waiting for host...</p>
         </div>
-
         <div id="game-screen" class="hidden">
             <div class="flex justify-between items-center mb-6">
                 <span class="text-xs font-bold bg-indigo-100 dark:bg-gray-700 text-indigo-600 dark:text-indigo-300 px-3 py-1 rounded-full uppercase" id="game-badge"></span>
-                <div id="timer-box" class="hidden text-xl font-black text-red-500 border-2 border-red-100 bg-red-50 dark:bg-gray-700 dark:border-red-900 px-3 py-1 rounded-lg">
-                    ⏰ <span id="timer-val">10</span>
-                </div>
+                <div id="timer-box" class="hidden text-xl font-black text-red-500 border-2 border-red-100 bg-red-50 dark:bg-gray-700 dark:border-red-900 px-3 py-1 rounded-lg">⏰ <span id="timer-val">10</span></div>
             </div>
-            
             <p id="round-indicator" class="text-xs text-gray-400 font-bold uppercase text-center mb-2"></p>
             <p id="q-text" class="text-center font-bold text-gray-800 dark:text-white mb-8 text-xl leading-tight"></p>
             <ul id="sortable-list" class="space-y-3 mb-8 hidden"></ul>
@@ -257,24 +229,12 @@
             <button onclick="submitAnswer()" id="submit-btn" class="hidden w-full bg-indigo-600 text-white p-4 rounded-xl font-bold shadow hover:bg-indigo-700 active:scale-95 transition">Lock It In</button>
             <p id="status-msg" class="text-center text-sm text-gray-400 mt-4 h-5 font-medium"></p>
         </div>
-
         <div id="result-screen" class="hidden text-center">
             <div id="res-final" class="hidden">
-                <div id="res-1v1" class="hidden">
-                    <div class="text-6xl mb-2 heart-pulse">💖</div>
-                    <div class="text-8xl font-black text-indigo-600 dark:text-indigo-400 mb-2" id="score-1v1">0%</div>
-                    <p id="msg-1v1" class="text-gray-500 dark:text-gray-300 font-medium mb-8"></p>
-                </div>
-                <div id="res-party" class="hidden">
-                    <h2 class="text-3xl font-black text-gray-800 dark:text-white mb-6">FINAL LEADERBOARD</h2>
-                    <div id="leaderboard" class="space-y-3 mb-8"></div>
-                </div>
-                
+                <div id="res-1v1" class="hidden"><div class="text-6xl mb-2 heart-pulse">💖</div><div class="text-8xl font-black text-indigo-600 dark:text-indigo-400 mb-2" id="score-1v1">0%</div><p id="msg-1v1" class="text-gray-500 dark:text-gray-300 font-medium mb-8"></p></div>
+                <div id="res-party" class="hidden"><h2 class="text-3xl font-black text-gray-800 dark:text-white mb-6">FINAL LEADERBOARD</h2><div id="leaderboard" class="space-y-3 mb-8"></div></div>
                 <button onclick="reloadGame()" class="w-full bg-gray-800 dark:bg-gray-600 text-white p-4 rounded-xl font-bold hover:bg-gray-700 shadow-lg mb-3">Play Again</button>
-                
-                <button onclick="swapRoles()" class="w-full bg-white dark:bg-gray-700 border-2 border-indigo-200 dark:border-gray-600 text-indigo-600 dark:text-indigo-300 p-4 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-gray-600 hover:border-indigo-300 transition shadow-sm">
-                    🔄 Swap Roles
-                </button>
+                <button onclick="swapRoles()" class="w-full bg-white dark:bg-gray-700 border-2 border-indigo-200 dark:border-gray-600 text-indigo-600 dark:text-indigo-300 p-4 rounded-xl font-bold hover:bg-indigo-50 dark:hover:bg-gray-600 hover:border-indigo-300 transition shadow-sm">🔄 Swap Roles</button>
             </div>
             <div id="res-round" class="hidden"></div>
         </div>
@@ -284,55 +244,22 @@
         <div id="mechanics-content" onclick="event.stopPropagation()" class="bg-white dark:bg-gray-800 dark:text-white w-full max-w-lg p-6 rounded-2xl shadow-2xl mx-4 border-4 border-indigo-100 dark:border-gray-700 relative transform scale-95 opacity-0 transition-all duration-300 ease-out">
             <button onclick="toggleMechanics()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
             <h2 class="text-3xl font-black text-indigo-600 dark:text-indigo-400 mb-4 tracking-tighter">HOW TO PLAY</h2>
-            <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300">
-                <p><strong>1. Create or Join:</strong> Enter your name. One person Hosts, others join using the Room Code.</p>
-                <p><strong>2. Choose Mode:</strong> 
-                    <br>• <span class="text-indigo-600 dark:text-indigo-400 font-bold">1v1 Duel:</span> Find out how compatible you are with a partner.
-                    <br>• <span class="text-purple-600 dark:text-purple-400 font-bold">Party:</span> Compete with friends on a leaderboard.
-                </p>
-                <p><strong>3. The Game:</strong> The Host answers first (or sets the ranking). Guests must guess what the Host chose!</p>
-                <p><strong>4. Winning:</strong> The closer your guess is to the Host's answer, the higher your score!</p>
-            </div>
+            <div class="space-y-4 text-sm text-gray-700 dark:text-gray-300"><p><strong>1. Create or Join:</strong> Enter your name. One person Hosts, others join using the Room Code.</p><p><strong>2. Choose Mode:</strong> <br>• <span class="text-indigo-600 dark:text-indigo-400 font-bold">1v1 Duel:</span> Find out how compatible you are with a partner.<br>• <span class="text-purple-600 dark:text-purple-400 font-bold">Party:</span> Compete with friends on a leaderboard.</p><p><strong>3. The Game:</strong> The Host answers first (or sets the ranking). Guests must guess what the Host chose!</p><p><strong>4. Winning:</strong> The closer your guess is to the Host's answer, the higher your score!</p></div>
             <button onclick="toggleMechanics()" class="mt-6 w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow">GOT IT!</button>
         </div>
     </div>
-
     <div id="about-modal" onclick="toggleAbout()" class="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all duration-300 opacity-0 invisible">
         <div id="about-content" onclick="event.stopPropagation()" class="bg-white dark:bg-gray-800 dark:text-white w-full max-w-lg p-6 rounded-2xl shadow-2xl mx-4 border-4 border-indigo-100 dark:border-gray-700 relative transform scale-95 opacity-0 transition-all duration-300 ease-out">
             <button onclick="toggleAbout()" class="absolute top-4 right-4 text-gray-400 hover:text-red-500 text-2xl font-bold">&times;</button>
             <h2 class="text-3xl font-black text-indigo-600 dark:text-indigo-400 mb-2 tracking-tighter">ABOUT</h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 font-bold mb-6">Compatible Me.io - Social Sync Game</p>
-            
             <div class="mb-4 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-600 flex items-center justify-between group hover:border-indigo-400 transition cursor-pointer" onclick="window.open('https://github.com/mikelisondra', '_blank')">
-                <div class="flex items-center gap-3">
-                    <div class="bg-black text-white p-2 rounded-full">
-                        <svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase">Developer</p>
-                        <p class="font-bold text-lg group-hover:text-indigo-600 transition">mikelisondra</p>
-                    </div>
-                </div>
-                <span class="text-gray-300 group-hover:text-indigo-600 text-xl">↗</span>
+                <div class="flex items-center gap-3"><div class="bg-black text-white p-2 rounded-full"><svg height="24" width="24" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path></svg></div><div><p class="text-xs font-bold text-gray-400 uppercase">Developer</p><p class="font-bold text-lg group-hover:text-indigo-600 transition">mikelisondra</p></div></div><span class="text-gray-300 group-hover:text-indigo-600 text-xl">↗</span>
             </div>
-
             <div class="mb-6 p-4 bg-gray-50 dark:bg-gray-700 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-600 flex items-center justify-between group hover:border-green-400 transition cursor-pointer" onclick="window.open('https://github.com/mikelisondra/compatible-me', '_blank')">
-                <div class="flex items-center gap-3">
-                    <div class="bg-green-600 text-white p-2 rounded-full">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    </div>
-                    <div>
-                        <p class="text-xs font-bold text-gray-400 uppercase">Open Source</p>
-                        <p class="font-bold text-lg group-hover:text-green-600 transition">Contribute To The Community</p>
-                    </div>
-                </div>
-                <span class="text-gray-300 group-hover:text-green-600 text-xl">↗</span>
+                <div class="flex items-center gap-3"><div class="bg-green-600 text-white p-2 rounded-full"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></div><div><p class="text-xs font-bold text-gray-400 uppercase">Open Source</p><p class="font-bold text-lg group-hover:text-green-600 transition">Contribute To The Community</p></div></div><span class="text-gray-300 group-hover:text-green-600 text-xl">↗</span>
             </div>
-
-            <p class="text-gray-700 dark:text-gray-300 mb-4 text-sm leading-relaxed">
-                Compatible Me is designed to test how well you know your friends or partner. 
-                Whether you're looking for a fun party game or a compatibility test, this game syncs everyone together for real-time fun!
-            </p>
+            <p class="text-gray-700 dark:text-gray-300 mb-4 text-sm leading-relaxed">Compatible Me is designed to test how well you know your friends or partner. Whether you're looking for a fun party game or a compatibility test, this game syncs everyone together for real-time fun!</p>
         </div>
     </div>
 
