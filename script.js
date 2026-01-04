@@ -331,12 +331,16 @@ function enterLobby() {
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
     document.getElementById('start-screen').classList.add('hidden');
-    
     document.getElementById('lobby-screen').classList.remove('hidden');
     
     onValue(ref(db, `games/${myRoom}`), (snap) => {
         const d = snap.val(); 
         if(!d) return;
+
+
+        if (myName && d.host && myName.trim().toUpperCase() === d.host.trim().toUpperCase()) {
+            isHost = true;
+        }
 
         document.getElementById('display-code').innerText = myRoom;
         const lobbyTag = document.getElementById('lobby-tag');
@@ -346,18 +350,12 @@ function enterLobby() {
         if (d.players) {
             const playersArr = Object.values(d.players);
             
-
             playersArr.sort((a, b) => {
                 const hostName = d.host.trim().toUpperCase();
-                const nameA = a.name.trim().toUpperCase();
-                const nameB = b.name.trim().toUpperCase();
-                if (nameA === hostName) return -1;
-                if (nameB === hostName) return 1;
-                return 0;
+                return (a.name.trim().toUpperCase() === hostName) ? -1 : 1;
             });
 
             let guestCount = 0;
-
             playerList.innerHTML = playersArr.map((p) => {
                 const isThisPlayerHost = p.name.trim().toUpperCase() === d.host.trim().toUpperCase();
                 let roleLabel = "";
@@ -385,14 +383,17 @@ function enterLobby() {
             }).join(''); 
         }
 
+        // BUTTON LOGIC
+        const startBtn = document.getElementById('start-btn');
+        const waitMsg = document.getElementById('wait-msg');
+
         if(isHost) {
-            const startBtn = document.getElementById('start-btn');
             const playerCount = d.players ? Object.keys(d.players).length : 0;
             startBtn.classList.toggle('hidden', playerCount < 2);
-            document.getElementById('wait-msg').classList.add('hidden');
+            waitMsg.classList.add('hidden');
         } else {
-            document.getElementById('start-btn').classList.add('hidden');
-            document.getElementById('wait-msg').classList.remove('hidden');
+            startBtn.classList.add('hidden');
+            waitMsg.classList.remove('hidden');
         }
     
         if(d.state === 'playing' && currentRenderedRound !== d.currRound) { 
