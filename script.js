@@ -471,20 +471,73 @@ function renderInputs(data) {
 }
 
 // SUBMIT ANSWER
-window.submitAnswer = (val) => {
-    if(!val) {
-        val = Array.from(document.querySelectorAll('#sortable-list li'))
-                   .map(li => (li.dataset.value || li.innerText).trim());
+window.checkCompletion = (d) => {
+    if (!d || !d.answers || !isHost) return;
+
+    const pIds = Object.keys(d.players);
+    const answers = d.answers;
+
+    const hostId = pIds.find(k => 
+        d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
+    );
+
+    if (!hostId || !answers[hostId]) {
+        console.warn("DEBUG: Waiting for host answer...");
+        return;
     }
-    
-    update(ref(db, `games/${myRoom}/answers/${myId}`), { val });
 
-    document.getElementById('status-msg').innerText = "Answer locked!";
-    playSound('click');
+    const hostAns = answers[hostId].val; 
+    let updates = {};
 
-    document.getElementById('sortable-list').classList.add('pointer-events-none', 'opacity-50');
-    document.getElementById('trivia-grid').classList.add('pointer-events-none', 'opacity-50');
-    document.getElementById('submit-btn').classList.add('hidden');
+    pIds.forEach(pid => {
+        if (pid === hostId) {
+            updates[`players/${pid}/score`] = 100;
+            return;
+        }
+
+        const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
+        let roundScore = 0;
+
+        if (pAns === "SKIPPED") {
+            roundScore = 0;
+        } else if (d.type === 'trivia') {
+
+            const hStr = String(hostAns).trim().toLowerCase();
+            const pStr = String(pAns).trim().toLowerCase();
+            
+            console.log(`DEBUG: Comparing Guest (${pStr}) to Host (${hStr})`);
+            roundScore = (pStr === hStr) ? 100 : 0;
+        } else {
+
+            let dist = 0;
+            const hArr = Array.isArray(hostAns) ? hostAns : [];
+            const pArr = Array.isArray(pAns) ? pAns : [];
+
+            hArr.forEach((item, idx) => {
+                const pIdx = pArr.indexOf(item);
+                dist += Math.abs(idx - (pIdx === -1 ? hArr.length : pIdx));
+            });
+            
+            const max = (hArr.length ** 2) / 2;
+            roundScore = max > 0 ? Math.floor(((max - dist) / max) * 100) : 0;
+        }
+
+        const currentScore = d.players[pid].score || 0;
+        const newAvg = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
+        
+        updates[`players/${pid}/score`] = newAvg;
+        console.log(`DEBUG: Updating ${d.players[pid].name}'s score to: ${newAvg}`);
+    });
+
+    if (d.currRound < d.maxRounds) {
+        updates['currRound'] = d.currRound + 1;
+        updates['answers'] = null;
+        updates['roundData'] = d.gameDeck[d.currRound] || d.gameDeck[0];
+        update(ref(db, `games/${myRoom}`), updates);
+    } else {
+        updates['state'] = 'finished';
+        update(ref(db, `games/${myRoom}`), updates);
+    }
 };
 
 window.checkCompletion = (d) => {
