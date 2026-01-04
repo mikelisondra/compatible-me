@@ -493,40 +493,54 @@ window.checkCompletion = (d) => {
     const pIds = Object.keys(d.players);
     const answers = d.answers;
 
-    const hostId = pIds.find(k => 
+    let hostId = pIds.find(k => 
         d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
-    );
+    ) || pIds[0]; 
     
-    if(!hostId || !answers[hostId]) return; 
+    if(!answers[hostId]) return; 
     
-    const hostAns = answers[hostId].val;
+    // Clean Host Answer (Remove hidden spaces/newlines)
+    const hostAns = Array.isArray(answers[hostId].val) 
+        ? answers[hostId].val.map(s => String(s).trim()) 
+        : String(answers[hostId].val).trim();
+
     let updates = {};
+
     pIds.forEach(pid => {
-        const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
+        // Clean Guest Answer
+        const rawAns = answers[pid] ? answers[pid].val : "SKIPPED";
+        const pAns = Array.isArray(rawAns) 
+            ? rawAns.map(s => String(s).trim()) 
+            : String(rawAns).trim();
+
         let roundScore = 0;
         
         if (pAns === "SKIPPED") {
             roundScore = 0;
         } else if(d.type === 'trivia') {
-            // Trivia scoring logic
-            roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
+            // Trivia Match: Compare as cleaned strings
+            roundScore = (pAns === hostAns) ? 100 : 0;
         } else {
-            // Ranking distance scoring logic
+            // Ranking Score logic
             let dist = 0;
             hostAns.forEach((item, idx) => {
                 const pIdx = pAns.indexOf(item);
+                // If item not found, use max distance
                 dist += Math.abs(idx - (pIdx === -1 ? hostAns.length : pIdx));
             });
-            const max = (hostAns.length**2)/2;
-            roundScore = Math.floor(((max - dist)/max)*100);
+            const max = (hostAns.length ** 2) / 2;
+            roundScore = Math.floor(((max - dist) / max) * 100);
         }
         
+        // Ensure score isn't negative
+        roundScore = Math.max(0, roundScore);
+
         const currentScore = d.players[pid].score || 0;
         updates[`players/${pid}/score`] = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
     });
 
+    // Advance Round
     if (d.currRound < d.maxRounds) {
-        
         updates['currRound'] = d.currRound + 1;
         updates['answers'] = null; 
         updates['roundData'] = d.gameDeck[d.currRound]; 
