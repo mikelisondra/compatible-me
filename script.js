@@ -442,35 +442,45 @@ function startGameUI(data) {
 // REVEAL GUEST UI
 function revealGuestUI(data) {
     const rData = data.gameDeck[data.currRound - 1];
+    const statusMsg = document.getElementById('status-msg');
     
-    document.getElementById('status-msg').innerText = "";
+    statusMsg.innerText = "";
     document.getElementById('sortable-list').classList.remove('hidden', 'pointer-events-none', 'opacity-50');
     document.getElementById('trivia-grid').classList.remove('hidden', 'pointer-events-none', 'opacity-50');
     
-
     renderInputs(data); 
 
-    // Auto-lock host's pre-selected answer
     if (isHost && rData.lockedIdx !== null && rData.lockedIdx !== undefined) {
         let preSelectedValue;
         
         if (data.type === 'trivia') {
-            // Trivia
             preSelectedValue = rData.items[rData.lockedIdx];
         } else {
-            // Ranking
             preSelectedValue = rData.items; 
         }
 
         console.log("DEBUG: Auto-locking host's pre-selected answer:", preSelectedValue);
         
-        // Short delay to ensure the UI is fully rendered before locking
         setTimeout(() => {
             window.submitAnswer(preSelectedValue);
-            document.getElementById('status-msg').innerText = "Locked by Host Setup ✅";
+            
+            const previewText = Array.isArray(preSelectedValue) ? preSelectedValue.join(' → ') : preSelectedValue;
+            
+            statusMsg.innerHTML = `
+                <div class="flex items-center justify-center gap-2">
+                    <span class="text-sm font-bold text-indigo-600">Locked by Host Setup ✅</span>
+                    <div class="relative group cursor-pointer">
+                        <span class="text-xl">👁️</span>
+                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] p-2 rounded-lg shadow-xl whitespace-nowrap z-50">
+                            Your Locked Answer: ${previewText}
+                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-800"></div>
+                        </div>
+                    </div>
+                </div>
+            `;
         }, 400);
+        
     } else if (!isHost) {
-        // Only show the submit button for Guests
         document.getElementById('submit-btn').classList.remove('hidden');
     }
 }
