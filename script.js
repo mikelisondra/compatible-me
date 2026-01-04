@@ -551,57 +551,60 @@ function calculateRankingScore(h, p) {
     const max = (h.length**2)/2; return Math.floor(((max-dist)/max)*100);
 }
 
-function showResults(data) {
-    document.getElementById('game-screen').classList.add('hidden');
-    document.getElementById('result-screen').classList.remove('hidden');
-    document.getElementById('res-final').classList.remove('hidden');
-    const guests = Object.values(data.players).filter(p => p.name !== data.host).sort((a,b) => b.score - a.score);
-    const pass = (data.diff === 'standard') ? parseInt(data.target) : 25;
+function checkCompletion() {
+    get(ref(db, `games/${myRoom}`)).then(snap => {
+        const d = snap.val();
+        if(!d || !d.answers) return;
 
-    if (data.mode === '1v1') {
-        document.getElementById('res-1v1').classList.remove('hidden');
-        const g = guests[0] || { score: 0 }; const win = g.score >= pass;
-        playSound(win ? 'win' : 'fail');
-        document.getElementById('score-1v1').innerText = g.score + "%";
-        document.getElementById('score-1v1').className = `text-8xl font-black mb-2 ${win ? 'text-green-600' : 'text-red-500'}`;
-        
-        document.getElementById('emoji-1v1').innerText = win ? "💖" : (data.diff === 'standard' ? "💔😭" : "💔");
-        if(win) confetti();
-    } else {
-        document.getElementById('res-party').classList.remove('hidden');
-        document.getElementById('leaderboard').innerHTML = guests.map((p, i) => {
-            const medal = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : "";
-            const rankStyle = i===0 ? "rank-gold" : i===1 ? "rank-silver" : i===2 ? "rank-bronze" : "bg-gray-50";
-            return `<div class="flex justify-between p-4 border-2 rounded-xl mb-2 ${rankStyle}">
-                <span>${medal} #${i+1} ${p.name} ${p.score>=pass?'❤️':'💔'}</span>
-                <span class="${p.score>=pass?'text-green-600':'text-red-500'} font-black">${p.score}%</span>
-            </div>`;
-        }).join('');
-    }
+        const pIds = Object.keys(d.players);
+        const answers = d.answers;
+
+        if(Object.keys(answers).length >= pIds.length) {
+            const hostId = pIds.find(k => d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase());
+            
+            if (!hostId || !answers[hostId]) return; 
+            
+            const hostAns = answers[hostId].val;
+            let updates = {};
+
+            pIds.forEach(pid => {
+                const pAns = answers[pid].val;
+                let roundScore = 0;
+                
+                if (pAns === "SKIPPED") {
+                    roundScore = 0;
+                } else if(d.type === 'trivia') {
+                    // Trivia Score Logic
+                    roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
+                } else {
+                    // Ranking Score Logic
+                    let dist = 0;
+                    hostAns.forEach((item, idx) => {
+                        const guestIdx = pAns.indexOf(item);
+                        dist += Math.abs(idx - (guestIdx === -1 ? hostAns.length : guestIdx));
+                    });
+                    
+                    const max = (hostAns.length**2) / 2;
+                    roundScore = Math.floor(((max - dist) / max) * 100);
+                }
+                
+    
+                const oldScore = d.players[pid].score || 0;
+                const newAvg = Math.floor(((oldScore * (d.currRound - 1)) + roundScore) / d.currRound);
+                updates[`players/${pid}/score`] = newAvg;
+            });
+
+            if (d.currRound < d.maxRounds) {
+                updates['currRound'] = d.currRound + 1;
+                updates['answers'] = null; 
+                updates['roundData'] = d.gameDeck[d.currRound]; 
+                update(ref(db, `games/${myRoom}`), updates);
+            } else {
+                update(ref(db, `games/${myRoom}`), { state: 'finished' });
+            }
+        }
+    });
 }
-
-window.swapRoles = () => {
-    localStorage.setItem('savedName', document.getElementById('username').value);
-    sessionStorage.setItem('redirectRole', isHost ? 'guest' : 'host');
-    location.reload();
-};
-
-window.reloadGame = () => location.reload();
-window.playSound = (k) => { if(!isMuted && audio[k]) { audio[k].currentTime = 0; audio[k].play().catch(e=>{}); } };
-
-window.addEventListener('DOMContentLoaded', () => {
-    const savedName = localStorage.getItem('savedName');
-    const redirect = sessionStorage.getItem('redirectRole');
-    if (savedName) document.getElementById('username').value = savedName;
-    if (redirect === 'host') {
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('host-panel').classList.remove('hidden');
-    } else if (redirect === 'guest') {
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('guest-panel').classList.remove('hidden');
-    }
-    sessionStorage.removeItem('redirectRole');
-});
 
 function generateRandomRound(type) {
     if(type==='ranking') { const k = Object.keys(CONTENT.ranking)[Math.floor(Math.random()*2)]; return {q: `Rank ${k}`, items: CONTENT.ranking[k], lockedIdx: null}; }
