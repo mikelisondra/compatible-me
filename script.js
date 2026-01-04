@@ -503,13 +503,13 @@ window.checkCompletion = (d) => {
     }
 
     const hostAns = answers[hostId].val; 
-    console.log("DEBUG: Host ID:", hostId);
-    console.log("DEBUG: Host Answer Raw:", hostAns);
-
     let updates = {};
 
     pIds.forEach(pid => {
-        if (pid === hostId) return;
+        if (pid === hostId) {
+            updates[`players/${pid}/score`] = 100;
+            return;
+        }
 
         const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
         let roundScore = 0;
@@ -517,12 +517,14 @@ window.checkCompletion = (d) => {
         if (pAns === "SKIPPED") {
             roundScore = 0;
         } else if (d.type === 'trivia') {
+
             const hStr = String(hostAns).trim().toLowerCase();
             const pStr = String(pAns).trim().toLowerCase();
             
             console.log(`DEBUG: Comparing Guest (${pStr}) to Host (${hStr})`);
             roundScore = (pStr === hStr) ? 100 : 0;
         } else {
+
             let dist = 0;
             const hArr = Array.isArray(hostAns) ? hostAns : [];
             const pArr = Array.isArray(pAns) ? pAns : [];
@@ -538,7 +540,9 @@ window.checkCompletion = (d) => {
 
         const currentScore = d.players[pid].score || 0;
         const newAvg = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
+        
         updates[`players/${pid}/score`] = newAvg;
+        console.log(`DEBUG: Updating ${d.players[pid].name}'s score to: ${newAvg}`);
     });
 
     if (d.currRound < d.maxRounds) {
@@ -547,7 +551,8 @@ window.checkCompletion = (d) => {
         updates['roundData'] = d.gameDeck[d.currRound] || d.gameDeck[0];
         update(ref(db, `games/${myRoom}`), updates);
     } else {
-        update(ref(db, `games/${myRoom}`), { state: 'finished' });
+        updates['state'] = 'finished';
+        update(ref(db, `games/${myRoom}`), updates);
     }
 };
 
