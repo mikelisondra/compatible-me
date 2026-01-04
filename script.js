@@ -312,13 +312,34 @@ window.joinGame = () => {
 };
 
 function enterLobby() {
+    document.getElementById('host-panel').classList.add('hidden');
+    document.getElementById('guest-panel').classList.add('hidden');
+    document.getElementById('start-screen').classList.add('hidden');
+
     document.getElementById('lobby-screen').classList.remove('hidden');
+    
     onValue(ref(db, `games/${myRoom}`), (snap) => {
         const d = snap.val(); if(!d) return;
         document.getElementById('display-code').innerText = myRoom;
-        document.getElementById('player-list').innerHTML = Object.values(d.players).map(p => `<li>${p.name}</li>`).join('');
-        if(isHost) document.getElementById('start-btn').classList.toggle('hidden', Object.keys(d.players).length < 2);
-        if(d.state === 'playing' && currentRenderedRound !== d.currRound) { currentRenderedRound = d.currRound; startGameUI(d); }
+        
+        document.getElementById('lobby-tag').innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
+
+        document.getElementById('player-list').innerHTML = Object.values(d.players).map(p => 
+            `<li class="animate-popup bg-gray-50 dark:bg-gray-700 p-2 rounded-lg border dark:border-gray-600">${p.name}</li>`
+        ).join('');
+
+        if(isHost) {
+            document.getElementById('start-btn').classList.toggle('hidden', Object.keys(d.players).length < 2);
+            document.getElementById('wait-msg').classList.add('hidden');
+        } else {
+            document.getElementById('start-btn').classList.add('hidden');
+            document.getElementById('wait-msg').classList.remove('hidden');
+        }
+
+        if(d.state === 'playing' && currentRenderedRound !== d.currRound) { 
+            currentRenderedRound = d.currRound; 
+            startGameUI(d); 
+        }
         if(d.state === 'finished') showResults(d);
     });
 }
