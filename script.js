@@ -337,6 +337,7 @@ function enterLobby() {
         const d = snap.val(); 
         if(!d) return;
 
+        // Re-verify host status if page refreshed
         if (myName && d.host && myName.trim().toUpperCase() === d.host.trim().toUpperCase()) {
             isHost = true;
         }
@@ -345,6 +346,7 @@ function enterLobby() {
         const lobbyTag = document.getElementById('lobby-tag');
         if (lobbyTag) lobbyTag.innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
 
+        // AUTO-ADVANCE LOGIC: Only the host processes completion
         if (d.state === 'playing' && d.answers) {
             const playerCount = Object.keys(d.players || {}).length;
             const answerCount = Object.keys(d.answers || {}).length;
@@ -358,6 +360,7 @@ function enterLobby() {
         if (d.players) {
             const playersArr = Object.values(d.players);
             
+            // Sort: Host always first
             playersArr.sort((a, b) => {
                 const hostName = d.host.trim().toUpperCase();
                 return (a.name.trim().toUpperCase() === hostName) ? -1 : 1;
@@ -411,26 +414,6 @@ function enterLobby() {
             } else {
                 handleSyncView(d);
             }
-        }
-        if(d.state === 'finished') showResults(d);
-    });
-}
-        // BUTTON LOGIC
-        const startBtn = document.getElementById('start-btn');
-        const waitMsg = document.getElementById('wait-msg');
-
-        if(isHost) {
-            const playerCount = d.players ? Object.keys(d.players).length : 0;
-            startBtn.classList.toggle('hidden', playerCount < 2);
-            waitMsg.classList.add('hidden');
-        } else {
-            startBtn.classList.add('hidden');
-            waitMsg.classList.remove('hidden');
-        }
-    
-        if(d.state === 'playing' && currentRenderedRound !== d.currRound) { 
-            currentRenderedRound = d.currRound; 
-            startGameUI(d); 
         }
         if(d.state === 'finished') showResults(d);
     });

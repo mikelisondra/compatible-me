@@ -47,7 +47,7 @@
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/mikelisondra/compatible-me.git](https://github.com/mikelisondra/compatible-me.git)
+    git clone https://github.com/mikelisondra/compatible-me.git
     ```
 2.  **Firebase Configuration:**
     * Create a project in the [Firebase Console](https://console.firebase.google.com/).
@@ -60,6 +60,6 @@
 
 ##  Developer
 
-Developed with by [mikelisondra](https://github.com/mikelisondra).
+Developed by [mikelisondra](https://github.com/mikelisondra).
 
 Feel free to fork this project, report issues, or submit Pull Requests to contribute to the open-source community!
