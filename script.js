@@ -315,13 +315,13 @@ function enterLobby() {
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
     document.getElementById('start-screen').classList.add('hidden');
-
     document.getElementById('lobby-screen').classList.remove('hidden');
     
     onValue(ref(db, `games/${myRoom}`), (snap) => {
-        const d = snap.val(); if(!d) return;
+        const d = snap.val(); 
+        if(!d) return;
+
         document.getElementById('display-code').innerText = myRoom;
-        
         const lobbyTag = document.getElementById('lobby-tag');
         if (lobbyTag) lobbyTag.innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
 
@@ -336,21 +336,24 @@ function enterLobby() {
 
                 if (p.name === d.host) {
                     roleLabel = "HOST";
-                    roleColor = "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300";
+                    roleColor = "bg-indigo-600 text-white shadow-sm";
                 } else {
                     guestCount++;
                     roleLabel = `GUEST ${guestCount}`;
-                    roleColor = "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+                    roleColor = "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300";
                 }
 
                 return `
-                    <li class="animate-popup flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-100 dark:border-gray-700 shadow-sm mb-2">
-                        <span class="font-black text-gray-800 dark:text-white uppercase tracking-tight">${p.name}</span>
-                        <span class="text-[10px] font-black px-2 py-1 rounded-md tracking-widest ${roleColor}">
+                    <li class="animate-popup flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm mb-3">
+                        <div class="flex items-center gap-3">
+                             <div class="w-2 h-2 rounded-full ${p.name === d.host ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'}"></div>
+                             <span class="font-black text-gray-800 dark:text-white uppercase tracking-tight">${p.name}</span>
+                        </div>
+                        <span class="text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${roleColor}">
                             ${roleLabel} ${p.name === d.host ? '👑' : ''}
                         </span>
-                    </li>`;
-            }).join('');
+                   </li>`;
+           }).join(''); 
         }
 
         if(isHost) {
@@ -361,10 +364,10 @@ function enterLobby() {
             document.getElementById('start-btn').classList.add('hidden');
             document.getElementById('wait-msg').classList.remove('hidden');
         }
-
+        
         if(d.state === 'playing' && currentRenderedRound !== d.currRound) { 
-            currentRenderedRound = d.currRound; 
-            startGameUI(d); 
+        currentRenderedRound = d.currRound; 
+        startGameUI(d); 
         }
         if(d.state === 'finished') showResults(d);
     });
@@ -500,3 +503,20 @@ function generateRandomRound(type) {
     if(type==='ranking') { const k = Object.keys(CONTENT.ranking)[Math.floor(Math.random()*2)]; return {q: `Rank ${k}`, items: CONTENT.ranking[k], lockedIdx: null}; }
     const t = CONTENT.trivia[0]; return {q: t.q, items: t.opts, lockedIdx: null};
 }
+
+// COPY ROOM CODE TO CLIPBOARD
+window.copyRoomCode = () => {
+    const code = document.getElementById('display-code').innerText;
+    navigator.clipboard.writeText(code).then(() => {
+        const status = document.getElementById('copy-status');
+        status.classList.remove('opacity-0');
+        status.classList.add('opacity-100');
+        playSound('click');
+        setTimeout(() => {
+            status.classList.remove('opacity-100');
+            status.classList.add('opacity-0');
+        }, 2000);
+    }).catch(err => {
+        console.error('Failed to copy: ', err);
+    });
+};
