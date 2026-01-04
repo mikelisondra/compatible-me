@@ -488,66 +488,63 @@ window.submitAnswer = (val) => {
 };
 
 window.checkCompletion = (d) => {
-    if(!d || !d.answers || !isHost) return;
-    
+    if (!d || !d.answers || !isHost) return;
+
     const pIds = Object.keys(d.players);
     const answers = d.answers;
 
-    let hostId = pIds.find(k => 
-        String(d.players[k].name).trim().toUpperCase() === String(d.host).trim().toUpperCase()
+    const hostId = pIds.find(k => 
+        d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
     );
-    
-    if(!hostId) hostId = pIds[0]; 
-    
-    if(!answers[hostId]) return; 
-    
-    const hostVal = answers[hostId].val;
-    const hostAns = Array.isArray(hostVal) 
-        ? hostVal.map(s => String(s).trim()) 
-        : String(hostVal).trim();
+
+    if (!hostId || !answers[hostId]) {
+        console.warn("DEBUG: Waiting for host answer...");
+        return;
+    }
+
+    const hostAns = answers[hostId].val; 
+    console.log("DEBUG: Host ID:", hostId);
+    console.log("DEBUG: Host Answer Raw:", hostAns);
 
     let updates = {};
 
     pIds.forEach(pid => {
-        const rawAns = answers[pid] ? answers[pid].val : "SKIPPED";
-        
-        const pAns = Array.isArray(rawAns) 
-            ? rawAns.map(s => String(s).trim()) 
-            : String(rawAns).trim();
+        if (pid === hostId) return;
 
+        const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
         let roundScore = 0;
-        
+
         if (pAns === "SKIPPED") {
             roundScore = 0;
-        } else if(d.type === 'trivia') {
-            // Trivia Score Logic
-            roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
+        } else if (d.type === 'trivia') {
+            const hStr = String(hostAns).trim().toLowerCase();
+            const pStr = String(pAns).trim().toLowerCase();
+            
+            console.log(`DEBUG: Comparing Guest (${pStr}) to Host (${hStr})`);
+            roundScore = (pStr === hStr) ? 100 : 0;
         } else {
-            // Ranking Score Logic
             let dist = 0;
             const hArr = Array.isArray(hostAns) ? hostAns : [];
             const pArr = Array.isArray(pAns) ? pAns : [];
-            
+
             hArr.forEach((item, idx) => {
                 const pIdx = pArr.indexOf(item);
-                // If item isn't found, calculate distance from the end of the list
                 dist += Math.abs(idx - (pIdx === -1 ? hArr.length : pIdx));
             });
+            
             const max = (hArr.length ** 2) / 2;
             roundScore = max > 0 ? Math.floor(((max - dist) / max) * 100) : 0;
         }
-        
-        // Update cumulative average score
+
         const currentScore = d.players[pid].score || 0;
         const newAvg = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
-        updates[`players/${pid}/score`] = Math.max(0, newAvg);
+        updates[`players/${pid}/score`] = newAvg;
     });
 
-    // 2. ADVANCE THE GAME STATE
     if (d.currRound < d.maxRounds) {
         updates['currRound'] = d.currRound + 1;
-        updates['answers'] = null; 
-        updates['roundData'] = d.gameDeck[d.currRound]; 
+        updates['answers'] = null;
+        updates['roundData'] = d.gameDeck[d.currRound] || d.gameDeck[0];
         update(ref(db, `games/${myRoom}`), updates);
     } else {
         update(ref(db, `games/${myRoom}`), { state: 'finished' });
