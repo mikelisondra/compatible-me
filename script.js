@@ -423,16 +423,28 @@ function startGameUI(data) {
     document.getElementById('game-screen').classList.remove('hidden');
     document.getElementById('status-msg').innerText = "";
     
+    const timerBox = document.getElementById('timer-box');
+    const timerVal = document.getElementById('timer-val');
+    
+    if (data.timerSetting && data.timerSetting !== "0") {
+        timerBox.classList.remove('hidden'); 
+        if (timerVal) timerVal.innerText = data.timerSetting; 
+    } else {
+        timerBox.classList.add('hidden'); 
+    }
+
+
     const rData = data.gameDeck[data.currRound - 1];
     const qText = document.getElementById('q-text');
 
+    
     if (isHost && !data.syncMode && data.timerSetting && data.timerSetting !== "0") {
         window.runMasterTimer(data.timerSetting);
     }
 
     if (isHost) {
         qText.innerText = "Pick your answer!";
-        revealGuestUI(data); 
+        revealGuestUI(data);
     } else {
         qText.innerText = data.simpleMode ? rData.q : `Guess ${data.host}'s Answer: ${rData.q}`;
         
