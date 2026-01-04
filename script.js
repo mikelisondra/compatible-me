@@ -289,12 +289,12 @@ window.createGame = () => {
     if(!db) return; 
     saveCurrentSlide();
     
-    // Generate Room Code
     myRoom = Math.random().toString(36).substring(2,6).toUpperCase();
     const rounds = parseInt(document.getElementById('round-setting').value);
     const gameDeck = customDeckData.filter(d => d.q && d.items.length >= 2);
-
     const hostName = myName.trim();
+
+    const timerValue = document.getElementById('timer-setting').value; 
 
     set(ref(db, `games/${myRoom}`), {
         host: hostName, 
@@ -304,6 +304,10 @@ window.createGame = () => {
         target: document.getElementById('target-slider').value, 
         maxRounds: rounds, 
         currRound: 1, 
+        
+        timerSetting: timerValue, 
+        timer: timerValue === "0" ? null : parseInt(timerValue),
+        
         syncMode: document.getElementById('sync-mode').checked,
         simpleMode: document.getElementById('simple-mode').checked,
         gameDeck: gameDeck.length ? gameDeck : [generateRandomRound(document.getElementById('game-type').value)], 
@@ -422,13 +426,17 @@ function startGameUI(data) {
     const rData = data.gameDeck[data.currRound - 1];
     const qText = document.getElementById('q-text');
 
+    if (isHost && !data.syncMode && data.timerSetting && data.timerSetting !== "0") {
+        window.runMasterTimer(data.timerSetting);
+    }
+
     if (isHost) {
         qText.innerText = "Pick your answer!";
         revealGuestUI(data); 
     } else {
         qText.innerText = data.simpleMode ? rData.q : `Guess ${data.host}'s Answer: ${rData.q}`;
+        
         if (data.syncMode) {
-            // Hide everything while waiting for host
             document.getElementById('sortable-list').classList.add('hidden');
             document.getElementById('trivia-grid').classList.add('hidden');
             document.getElementById('submit-btn').classList.add('hidden');
@@ -456,25 +464,28 @@ function revealGuestUI(data) {
         if (data.type === 'trivia') {
             preSelectedValue = rData.items[rData.lockedIdx];
         } else {
-            preSelectedValue = rData.items; 
+            preSelectedValue = rData.items;
         }
 
-        console.log("DEBUG: Auto-locking host's pre-selected answer:", preSelectedValue);
-        
         setTimeout(() => {
             window.submitAnswer(preSelectedValue);
+            
+            if (data.syncMode && data.timerSetting && data.timerSetting !== "0") {
+                window.runMasterTimer(data.timerSetting);
+            }
             
             const previewText = Array.isArray(preSelectedValue) ? preSelectedValue.join(' → ') : preSelectedValue;
             
             statusMsg.innerHTML = `
-                <div class="flex items-center justify-center gap-2">
-                    <span class="text-sm font-bold text-indigo-600">Locked by Host Setup ✅</span>
-                    <div class="relative group cursor-pointer">
-                        <span class="text-xl">👁️</span>
-                        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 hidden group-hover:block bg-gray-800 text-white text-[10px] p-2 rounded-lg shadow-xl whitespace-nowrap z-50">
-                            Your Locked Answer: ${previewText}
-                            <div class="absolute top-full left-1/2 -translate-x-1/2 border-8 border-transparent border-t-gray-800"></div>
-                        </div>
+                <div class="flex flex-col items-center justify-center gap-2 py-2">
+                    <div class="flex items-center gap-3">
+                        <span class="text-green-500 text-lg">✅</span>
+                        <button onclick="window.togglePeek(this, '${previewText}')" class="flex items-center gap-2 outline-none hover:scale-110 transition-transform">
+                            <span id="peek-icon" class="text-2xl">🙈</span>
+                        </button>
+                    </div>
+                    <div id="peek-content" class="hidden text-[11px] font-bold text-indigo-700 bg-white border-2 border-indigo-100 px-4 py-2 rounded-xl shadow-sm animate-bounce-in">
+                        <span class="mr-1">👁️</span> ${previewText}
                     </div>
                 </div>
             `;
@@ -484,6 +495,20 @@ function revealGuestUI(data) {
         document.getElementById('submit-btn').classList.remove('hidden');
     }
 }
+
+// PREVIEW TOGGLE FUNCTION
+window.togglePeek = (btn, text) => {
+    const icon = document.getElementById('peek-icon');
+    const content = document.getElementById('peek-content');
+    
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.innerText = "🐵"; 
+    } else {
+        content.classList.add('hidden');
+        icon.innerText = "🙈"; 
+    }
+};
 
 // RENDER INPUT OPTIONS
 function renderInputs(data) {
@@ -509,6 +534,13 @@ function renderInputs(data) {
 
 // SUBMIT ANSWER
 window.submitAnswer = (val) => {
+
+    const timerVal = document.getElementById('timer-val');
+    if (timerVal && timerVal.innerText === "0" && !isHost) {
+        console.log("Submission blocked: Time's up!");
+        return; 
+    }
+
     if(!val) {
         val = Array.from(document.querySelectorAll('#sortable-list li'))
                    .map(li => (li.dataset.value || li.innerText).trim());
@@ -516,14 +548,27 @@ window.submitAnswer = (val) => {
     
     update(ref(db, `games/${myRoom}/answers/${myId}`), { val });
 
-    document.getElementById('status-msg').innerText = "Answer locked!";
+    if (isHost) {
+        get(ref(db, `games/${myRoom}`)).then((snap) => {
+            const d = snap.val();
+            if (d && d.syncMode && d.timerSetting && d.timerSetting !== "0") {
+                window.runMasterTimer(d.timerSetting);
+            }
+        });
+    }
+
+    const statusMsg = document.getElementById('status-msg');
+
+    if (!statusMsg.innerHTML.includes('peek-icon')) {
+        statusMsg.innerText = "Answer locked!";
+    }
+
     playSound('click');
 
     document.getElementById('sortable-list').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('trivia-grid').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('submit-btn').classList.add('hidden');
 };
-
 window.checkCompletion = (d) => {
     if (!d || !d.answers || !isHost) return;
 
@@ -675,4 +720,30 @@ window.copyRoomCode = () => {
     }).catch(err => {
         console.error('Failed to copy: ', err);
     });
+};
+
+//TIMER FUNCTIONS
+window.runMasterTimer = (initialTime) => {
+    if (!isHost || initialTime === "0" || !initialTime) return;
+
+    clearInterval(countdownInterval); 
+
+    let timeLeft = parseInt(initialTime);
+    const gameRef = ref(db, `games/${myRoom}`);
+
+    countdownInterval = setInterval(() => {
+        timeLeft--;
+        
+        update(gameRef, { timer: timeLeft });
+
+        if (timeLeft <= 0) {
+            clearInterval(countdownInterval);
+            
+            update(gameRef, { timer: 0 }).then(() => {
+                get(gameRef).then((snap) => {
+                    if(snap.exists()) checkCompletion(snap.val());
+                });
+            });
+        }
+    }, 1000);
 };
