@@ -328,7 +328,6 @@ window.joinGame = () => {
 
 // CREATE & JOIN LOBBY
 function enterLobby() {
-    // UI hiding logic remains the same
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
     document.getElementById('start-screen').classList.add('hidden');
@@ -344,21 +343,43 @@ function enterLobby() {
 
         document.getElementById('display-code').innerText = myRoom;
         
+        // Render Player List
+        const playerList = document.getElementById('player-list');
+        if (d.players) {
+            const playersArr = Object.values(d.players);
+            playersArr.sort((a, b) => {
+                const hostName = d.host.trim().toUpperCase();
+                return (a.name.trim().toUpperCase() === hostName) ? -1 : 1;
+            });
+
+            let guestCount = 0;
+            playerList.innerHTML = playersArr.map((p) => {
+                const isThisPlayerHost = p.name.trim().toUpperCase() === d.host.trim().toUpperCase();
+                let roleLabel = isThisPlayerHost ? "HOST" : `GUEST ${++guestCount}`;
+                let roleColor = isThisPlayerHost ? "bg-indigo-600 text-white shadow-sm" : "bg-gray-200 text-gray-600";
+
+                return `
+                    <li class="flex items-center justify-between bg-white p-4 rounded-2xl border-2 border-gray-100 shadow-sm mb-3">
+                        <div class="flex items-center gap-3">
+                             <div class="w-2 h-2 rounded-full ${isThisPlayerHost ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'}"></div>
+                             <span class="font-black text-gray-800 uppercase">${p.name}</span>
+                        </div>
+                        <span class="text-[10px] font-black px-3 py-1 rounded-full uppercase ${roleColor}">
+                            ${roleLabel} ${isThisPlayerHost ? '👑' : ''}
+                        </span>
+                    </li>`;
+            }).join(''); 
+        }
+
         if (d.state === 'playing') {
-            // If the round has changed, reset the guest's local state
             if (currentRenderedRound !== d.currRound) {
                 currentRenderedRound = d.currRound; 
                 guestHasStartedRound = false; 
                 startGameUI(d); 
             }
             
-            // Logic for Sync Mode: Wait for host to lock in
             if (d.syncMode && !isHost && !guestHasStartedRound) {
-                const hostId = Object.keys(d.players).find(k => 
-                    d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
-                );
-                
-                // If the host has answered, reveal the UI for the guest
+                const hostId = Object.keys(d.players).find(k => d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase());
                 if (d.answers && d.answers[hostId]) {
                     guestHasStartedRound = true;
                     revealGuestUI(d);
@@ -366,13 +387,20 @@ function enterLobby() {
             }
         }
         
-        // AUTO-COMPLETION TRIGGER
-        if (d.state === 'playing' && isHost) {
-            const playerCount = Object.keys(d.players || {}).length;
-            const answerCount = Object.keys(d.answers || {}).length;
-            if (answerCount >= playerCount) {
+        // Auto-scoring for host
+        if (d.state === 'playing' && isHost && d.answers) {
+            if (Object.keys(d.answers).length >= Object.keys(d.players).length) {
                 setTimeout(() => checkCompletion(d), 1000);
             }
+        }
+
+        // Show/Hide Start Button
+        const startBtn = document.getElementById('start-btn');
+        if(isHost) {
+            const playerCount = d.players ? Object.keys(d.players).length : 0;
+            startBtn.classList.toggle('hidden', playerCount < 2);
+        } else {
+            startBtn.classList.add('hidden');
         }
 
         if(d.state === 'finished') showResults(d);
@@ -389,7 +417,6 @@ window.startGame = () => {
 function startGameUI(data) {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
-    
     document.getElementById('status-msg').innerText = "";
     
     const rData = data.gameDeck[data.currRound - 1];
@@ -397,12 +424,11 @@ function startGameUI(data) {
 
     if (isHost) {
         qText.innerText = "Pick your answer!";
-        revealGuestUI(data);
+        revealGuestUI(data); 
     } else {
-        const qLabel = data.simpleMode ? rData.q : `Guess ${data.host}'s Answer: ${rData.q}`;
-        qText.innerText = qLabel;
-
+        qText.innerText = data.simpleMode ? rData.q : `Guess ${data.host}'s Answer: ${rData.q}`;
         if (data.syncMode) {
+            // Hide everything while waiting for host
             document.getElementById('sortable-list').classList.add('hidden');
             document.getElementById('trivia-grid').classList.add('hidden');
             document.getElementById('submit-btn').classList.add('hidden');
@@ -416,18 +442,12 @@ function startGameUI(data) {
 // REVEAL GUEST UI
 function revealGuestUI(data) {
     document.getElementById('status-msg').innerText = "";
-    const list = document.getElementById('sortable-list');
-    const grid = document.getElementById('trivia-grid');
-    
-    
-    if(data.type === 'ranking') list.classList.remove('hidden');
-    else grid.classList.remove('hidden');
-    
+    document.getElementById('sortable-list').classList.remove('hidden');
+    document.getElementById('trivia-grid').classList.remove('hidden');
     if(!isHost) document.getElementById('submit-btn').classList.remove('hidden');
     
     renderInputs(data); 
 }
-
 // RENDER INPUT OPTIONS
 function renderInputs(data) {
     const list = document.getElementById('sortable-list'), grid = document.getElementById('trivia-grid');
