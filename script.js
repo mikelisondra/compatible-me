@@ -286,20 +286,34 @@ window.toggleLock = () => {
 
 // CREATE & JOIN GAME WINDOW
 window.createGame = () => {
-    if(!db) return; saveCurrentSlide();
+    if(!db) return; 
+    saveCurrentSlide();
+    
+    // Generate Room Code
     myRoom = Math.random().toString(36).substring(2,6).toUpperCase();
     const rounds = parseInt(document.getElementById('round-setting').value);
     const gameDeck = customDeckData.filter(d => d.q && d.items.length >= 2);
+
+    const hostName = myName.trim();
+
     set(ref(db, `games/${myRoom}`), {
-        host: myName, mode: settings.mode, diff: settings.diff, type: document.getElementById('game-type').value,
-        target: document.getElementById('target-slider').value, maxRounds: rounds, currRound: 1, 
-       
+        host: hostName, 
+        mode: settings.mode, 
+        diff: settings.diff, 
+        type: document.getElementById('game-type').value,
+        target: document.getElementById('target-slider').value, 
+        maxRounds: rounds, 
+        currRound: 1, 
         syncMode: document.getElementById('sync-mode').checked,
         simpleMode: document.getElementById('simple-mode').checked,
         gameDeck: gameDeck.length ? gameDeck : [generateRandomRound(document.getElementById('game-type').value)], 
-        roundData: gameDeck[0] || null, state: 'lobby', players: { [myId]: { name: myName, score: 0 } }
+        roundData: gameDeck[0] || null, 
+        state: 'lobby', 
+        players: { [myId]: { name: hostName, score: 0 } }
     });
-    isHost = true; enterLobby();
+
+    isHost = true; 
+    enterLobby();
 };
 
 window.joinGame = () => {
@@ -317,6 +331,7 @@ function enterLobby() {
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
     document.getElementById('start-screen').classList.add('hidden');
+    
     document.getElementById('lobby-screen').classList.remove('hidden');
     
     onValue(ref(db, `games/${myRoom}`), (snap) => {
@@ -331,18 +346,22 @@ function enterLobby() {
         if (d.players) {
             const playersArr = Object.values(d.players);
             
+
             playersArr.sort((a, b) => {
                 const hostName = d.host.trim().toUpperCase();
-                return (a.name.trim().toUpperCase() === hostName) ? -1 : 1;
+                const nameA = a.name.trim().toUpperCase();
+                const nameB = b.name.trim().toUpperCase();
+                if (nameA === hostName) return -1;
+                if (nameB === hostName) return 1;
+                return 0;
             });
 
             let guestCount = 0;
 
             playerList.innerHTML = playersArr.map((p) => {
+                const isThisPlayerHost = p.name.trim().toUpperCase() === d.host.trim().toUpperCase();
                 let roleLabel = "";
                 let roleColor = "";
-                
-                const isThisPlayerHost = p.name.trim().toUpperCase() === d.host.trim().toUpperCase();
 
                 if (isThisPlayerHost) {
                     roleLabel = "HOST";
@@ -362,19 +381,20 @@ function enterLobby() {
                         <span class="text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${roleColor}">
                             ${roleLabel} ${isThisPlayerHost ? '👑' : ''}
                         </span>
-                   </li>`;
+                    </li>`;
             }).join(''); 
         }
 
         if(isHost) {
             const startBtn = document.getElementById('start-btn');
-            startBtn.classList.toggle('hidden', Object.keys(d.players).length < 2);
+            const playerCount = d.players ? Object.keys(d.players).length : 0;
+            startBtn.classList.toggle('hidden', playerCount < 2);
             document.getElementById('wait-msg').classList.add('hidden');
         } else {
             document.getElementById('start-btn').classList.add('hidden');
             document.getElementById('wait-msg').classList.remove('hidden');
         }
-        
+    
         if(d.state === 'playing' && currentRenderedRound !== d.currRound) { 
             currentRenderedRound = d.currRound; 
             startGameUI(d); 
