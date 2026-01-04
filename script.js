@@ -404,6 +404,34 @@ function enterLobby() {
     });
 }
 
+// START THE GAME 
+window.startGame = () => {
+    update(ref(db, `games/${myRoom}`), { state: 'playing' });
+    playSound('click');
+};
+
+// UI TRANSITION TO GAME
+function startGameUI(data) {
+    document.getElementById('lobby-screen').classList.add('hidden');
+    document.getElementById('game-screen').classList.remove('hidden');
+    
+    const roundObj = data.gameDeck[data.currRound - 1];
+    const hostId = Object.keys(data.players).find(k => data.players[k].name === data.host);
+
+    if (data.syncMode && !isHost && (!data.answers || !data.answers[hostId])) {
+        document.getElementById('q-text').innerText = `Waiting for ${data.host} to lock in...`;
+        document.getElementById('sortable-list').classList.add('hidden');
+        document.getElementById('trivia-grid').classList.add('hidden');
+        document.getElementById('submit-btn').classList.add('hidden');
+        return;
+    }
+
+    const finalQuestion = data.simpleMode ? roundObj.q : `Guess ${data.host}'s Answer: ${roundObj.q}`;
+    document.getElementById('q-text').innerText = isHost ? "Pick your answer!" : finalQuestion;
+
+    renderInputs(data);
+}
+
 function renderInputs(data) {
     const list = document.getElementById('sortable-list'), grid = document.getElementById('trivia-grid');
     const rData = data.gameDeck[data.currRound - 1];
