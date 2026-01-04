@@ -487,7 +487,7 @@ window.submitAnswer = (val) => {
 
 };
 
-function checkCompletion(d) {
+window.checkCompletion = (d) => {
     if(!d || !d.answers || !isHost) return;
     
     const pIds = Object.keys(d.players);
@@ -497,54 +497,44 @@ function checkCompletion(d) {
         d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
     );
     
-    if(!answers[hostId]) return; 
+    if(!hostId || !answers[hostId]) return; 
     
     const hostAns = answers[hostId].val;
     let updates = {};
-
     pIds.forEach(pid => {
-        if (pid === hostId) {
-            updates[`players/${pid}/score`] = 100;
-            return;
-        }
-
         const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
         let roundScore = 0;
         
         if (pAns === "SKIPPED") {
             roundScore = 0;
         } else if(d.type === 'trivia') {
-            // Trivia Score Logic
-            roundScore = (pAns === hostAns) ? 100 : 0;
+            // Trivia scoring logic
+            roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
         } else {
-            // Ranking Score Logic
+            // Ranking distance scoring logic
             let dist = 0;
             hostAns.forEach((item, idx) => {
                 const pIdx = pAns.indexOf(item);
                 dist += Math.abs(idx - (pIdx === -1 ? hostAns.length : pIdx));
             });
-            
             const max = (hostAns.length**2)/2;
             roundScore = Math.floor(((max - dist)/max)*100);
         }
         
-        roundScore = Math.max(0, roundScore);
-
-        const oldScore = d.players[pid].score || 0;
-        const newAvg = Math.floor(((oldScore * (d.currRound - 1)) + roundScore) / d.currRound);
-        updates[`players/${pid}/score`] = newAvg;
+        const currentScore = d.players[pid].score || 0;
+        updates[`players/${pid}/score`] = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
     });
 
-
     if (d.currRound < d.maxRounds) {
+        
         updates['currRound'] = d.currRound + 1;
-        updates['answers'] = null;
+        updates['answers'] = null; 
         updates['roundData'] = d.gameDeck[d.currRound]; 
         update(ref(db, `games/${myRoom}`), updates);
     } else {
         update(ref(db, `games/${myRoom}`), { state: 'finished' });
     }
-}
+};
 
 function calculateRankingScore(h, p) {
     let dist = 0; h.forEach((item, i) => dist += Math.abs(i - p.indexOf(item)));
