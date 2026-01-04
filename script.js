@@ -330,11 +330,13 @@ function enterLobby() {
             const playersArr = Object.values(d.players);
             let guestCount = 0;
 
+            playersArr.sort((a, b) => (a.name === d.host) ? -1 : 1);
+
             playerList.innerHTML = playersArr.map((p) => {
                 let roleLabel = "";
                 let roleColor = "";
 
-                if (p.name === d.host) {
+                if (p.name.trim().toUpperCase() === d.host.trim().toUpperCase()) {
                     roleLabel = "HOST";
                     roleColor = "bg-indigo-600 text-white shadow-sm";
                 } else {
@@ -366,38 +368,11 @@ function enterLobby() {
         }
         
         if(d.state === 'playing' && currentRenderedRound !== d.currRound) { 
-        currentRenderedRound = d.currRound; 
-        startGameUI(d); 
+            currentRenderedRound = d.currRound; 
+            startGameUI(d); 
         }
         if(d.state === 'finished') showResults(d);
     });
-}
-
-window.startGame = () => update(ref(db, `games/${myRoom}`), { state: 'playing' });
-
-function startGameUI(data) {
-    document.getElementById('lobby-screen').classList.add('hidden');
-    document.getElementById('game-screen').classList.remove('hidden');
-    const roundObj = data.gameDeck[data.currRound - 1];
-    const hostId = Object.keys(data.players).find(k => data.players[k].name === data.host);
-
-   
-    if (data.syncMode && !isHost && (!data.answers || !data.answers[hostId])) {
-        document.getElementById('q-text').innerText = `Waiting for ${data.host} to lock in...`;
-        document.getElementById('sortable-list').classList.add('hidden');
-        document.getElementById('trivia-grid').classList.add('hidden');
-        return;
-    }
-
-    const finalQuestion = data.simpleMode ? roundObj.q : `Guess ${data.host}'s Answer: ${roundObj.q}`;
-    document.getElementById('q-text').innerText = isHost ? "Pick your answer!" : finalQuestion;
-
-    if (isHost && roundObj.lockedIdx !== null && roundObj.lockedIdx !== undefined && roundObj.lockedIdx !== -1) {
-        const val = (data.type === 'trivia') ? roundObj.items[roundObj.lockedIdx] : roundObj.items;
-        submitAnswer(val);
-    } else {
-        renderInputs(data);
-    }
 }
 
 function renderInputs(data) {
