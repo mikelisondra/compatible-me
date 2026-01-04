@@ -432,25 +432,43 @@ function startGameUI(data) {
     renderInputs(data);
 }
 
+// RENDER INPUT OPTIONS
 function renderInputs(data) {
     const list = document.getElementById('sortable-list'), grid = document.getElementById('trivia-grid');
     const rData = data.gameDeck[data.currRound - 1];
+
     if(data.type === 'ranking') {
-        list.classList.remove('hidden'); grid.classList.add('hidden');
+        list.classList.remove('hidden'); 
+        grid.classList.add('hidden');
         list.innerHTML = rData.items.map(i => `<li class="p-4 border rounded-xl bg-white dark:bg-gray-700 font-bold mb-2 cursor-grab" data-value="${i}">${i}</li>`).join('');
         new Sortable(list, { animation: 150 });
         document.getElementById('submit-btn').classList.remove('hidden');
     } else {
-        grid.classList.remove('hidden'); list.classList.add('hidden');
-        grid.innerHTML = rData.items.map(i => `<button onclick="submitAnswer('${i}')" class="p-4 border-2 rounded-xl font-bold bg-white dark:bg-gray-700 hover:border-indigo-500">${i}</button>`).join('');
+        grid.classList.remove('hidden'); 
+        list.classList.add('hidden');
+        grid.innerHTML = rData.items.map(i => `
+            <button onclick="window.submitAnswer('${i}')" class="p-4 border-2 rounded-xl font-bold bg-white dark:bg-gray-700 hover:border-indigo-500 active:scale-95 transition-all">
+                ${i}
+            </button>`).join('');
         document.getElementById('submit-btn').classList.add('hidden');
     }
 }
 
+// SUBMIT ANSWER
 window.submitAnswer = (val) => {
-    if(!val) val = Array.from(document.querySelectorAll('#sortable-list li')).map(li => li.dataset.value);
+    if(!val) {
+        val = Array.from(document.querySelectorAll('#sortable-list li')).map(li => li.dataset.value || li.innerText);
+    }
+    
     update(ref(db, `games/${myRoom}/answers/${myId}`), { val });
+
     document.getElementById('status-msg').innerText = "Answer locked!";
+    playSound('click');
+
+    document.getElementById('sortable-list').classList.add('pointer-events-none', 'opacity-50');
+    document.getElementById('trivia-grid').classList.add('pointer-events-none', 'opacity-50');
+    document.getElementById('submit-btn').classList.add('hidden');
+
     if(isHost) setTimeout(checkCompletion, 1000);
 };
 
