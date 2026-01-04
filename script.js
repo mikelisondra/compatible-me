@@ -552,8 +552,8 @@ function renderInputs(data) {
 
 // SUBMIT ANSWER
 window.submitAnswer = (val) => {
-
     const timerVal = document.getElementById('timer-val');
+    // Prevents guests from submitting after the countdown ends
     if (timerVal && timerVal.innerText === "0" && !isHost) {
         console.log("Submission blocked: Time's up!");
         return; 
@@ -569,6 +569,7 @@ window.submitAnswer = (val) => {
     if (isHost) {
         get(ref(db, `games/${myRoom}`)).then((snap) => {
             const d = snap.val();
+            // Start the clock only if Sync Mode is on and a timer exists
             if (d && d.syncMode && d.timerSetting && d.timerSetting !== "0") {
                 window.runMasterTimer(d.timerSetting);
             }
@@ -577,16 +578,19 @@ window.submitAnswer = (val) => {
 
     const statusMsg = document.getElementById('status-msg');
 
-    if (!statusMsg.innerHTML.includes('peek-icon')) {
+    // CRITICAL FIX: Ensure we don't overwrite the Monkey 🙈 HTML
+    if (statusMsg && !statusMsg.innerHTML.includes('peek-icon')) {
         statusMsg.innerText = "Answer locked!";
     }
 
     playSound('click');
 
+    // Visual lockout of inputs
     document.getElementById('sortable-list').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('trivia-grid').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('submit-btn').classList.add('hidden');
 };
+
 window.checkCompletion = (d) => {
     if (!d || !d.answers || !isHost) return;
 
@@ -741,6 +745,8 @@ window.copyRoomCode = () => {
 };
 
 //TIMER FUNCTIONS
+let countdownInterval; 
+
 window.runMasterTimer = (initialTime) => {
     if (!isHost || initialTime === "0" || !initialTime) return;
 
@@ -751,12 +757,11 @@ window.runMasterTimer = (initialTime) => {
 
     countdownInterval = setInterval(() => {
         timeLeft--;
-        
+
         update(gameRef, { timer: timeLeft });
 
         if (timeLeft <= 0) {
             clearInterval(countdownInterval);
-            
             update(gameRef, { timer: 0 }).then(() => {
                 get(gameRef).then((snap) => {
                     if(snap.exists()) checkCompletion(snap.val());
