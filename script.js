@@ -347,7 +347,17 @@ function enterLobby() {
 
         document.getElementById('display-code').innerText = myRoom;
         
-        // Render Player List
+        const timerVal = document.getElementById('timer-val');
+        if (timerVal && d.timer !== undefined) {
+            timerVal.innerText = d.timer; 
+            
+            if (d.timer <= 5) {
+                timerVal.classList.add('text-red-600', 'animate-pulse');
+            } else {
+                timerVal.classList.remove('text-red-600', 'animate-pulse');
+            }
+        }
+
         const playerList = document.getElementById('player-list');
         if (d.players) {
             const playersArr = Object.values(d.players);
@@ -390,15 +400,13 @@ function enterLobby() {
                 }
             }
         }
-        
-        // Auto-scoring for host
+   
         if (d.state === 'playing' && isHost && d.answers) {
             if (Object.keys(d.answers).length >= Object.keys(d.players).length) {
                 setTimeout(() => checkCompletion(d), 1000);
             }
         }
 
-        // Show/Hide Start Button
         const startBtn = document.getElementById('start-btn');
         if(isHost) {
             const playerCount = d.players ? Object.keys(d.players).length : 0;
@@ -433,11 +441,9 @@ function startGameUI(data) {
         timerBox.classList.add('hidden'); 
     }
 
-
     const rData = data.gameDeck[data.currRound - 1];
     const qText = document.getElementById('q-text');
 
-    
     if (isHost && !data.syncMode && data.timerSetting && data.timerSetting !== "0") {
         window.runMasterTimer(data.timerSetting);
     }
