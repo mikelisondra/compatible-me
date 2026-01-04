@@ -337,7 +337,6 @@ function enterLobby() {
         const d = snap.val(); 
         if(!d) return;
 
-
         if (myName && d.host && myName.trim().toUpperCase() === d.host.trim().toUpperCase()) {
             isHost = true;
         }
@@ -345,6 +344,15 @@ function enterLobby() {
         document.getElementById('display-code').innerText = myRoom;
         const lobbyTag = document.getElementById('lobby-tag');
         if (lobbyTag) lobbyTag.innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
+
+        if (d.state === 'playing' && d.answers) {
+            const playerCount = Object.keys(d.players || {}).length;
+            const answerCount = Object.keys(d.answers || {}).length;
+
+            if (answerCount >= playerCount && isHost) {
+                setTimeout(() => checkCompletion(d), 500);
+            }
+        }
 
         const playerList = document.getElementById('player-list');
         if (d.players) {
@@ -383,6 +391,30 @@ function enterLobby() {
             }).join(''); 
         }
 
+        // START BUTTON & MESSAGE LOGIC
+        const startBtn = document.getElementById('start-btn');
+        const waitMsg = document.getElementById('wait-msg');
+        if(isHost) {
+            const playerCount = d.players ? Object.keys(d.players).length : 0;
+            startBtn.classList.toggle('hidden', playerCount < 2);
+            waitMsg.classList.add('hidden');
+        } else {
+            startBtn.classList.add('hidden');
+            waitMsg.classList.remove('hidden');
+        }
+    
+        // STATE HANDLERS
+        if(d.state === 'playing') { 
+            if (currentRenderedRound !== d.currRound) {
+                currentRenderedRound = d.currRound; 
+                startGameUI(d); 
+            } else {
+                handleSyncView(d);
+            }
+        }
+        if(d.state === 'finished') showResults(d);
+    });
+}
         // BUTTON LOGIC
         const startBtn = document.getElementById('start-btn');
         const waitMsg = document.getElementById('wait-msg');
@@ -416,15 +448,23 @@ function startGameUI(data) {
     document.getElementById('game-screen').classList.remove('hidden');
     
     const roundObj = data.gameDeck[data.currRound - 1];
-    const hostId = Object.keys(data.players).find(k => data.players[k].name === data.host);
+    
+    const hostId = Object.keys(data.players).find(k => 
+        data.players[k].name.trim().toUpperCase() === data.host.trim().toUpperCase()
+    );
 
-    if (data.syncMode && !isHost && (!data.answers || !data.answers[hostId])) {
+    const hostHasAnswered = data.answers && data.answers[hostId];
+
+    if (data.syncMode && !isHost && !hostHasAnswered) {
         document.getElementById('q-text').innerText = `Waiting for ${data.host} to lock in...`;
         document.getElementById('sortable-list').classList.add('hidden');
         document.getElementById('trivia-grid').classList.add('hidden');
         document.getElementById('submit-btn').classList.add('hidden');
-        return;
+        return; 
     }
+
+    document.getElementById('sortable-list').classList.remove('hidden');
+    document.getElementById('trivia-grid').classList.remove('hidden');
 
     const finalQuestion = data.simpleMode ? roundObj.q : `Guess ${data.host}'s Answer: ${roundObj.q}`;
     document.getElementById('q-text').innerText = isHost ? "Pick your answer!" : finalQuestion;
@@ -469,27 +509,45 @@ window.submitAnswer = (val) => {
     document.getElementById('trivia-grid').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('submit-btn').classList.add('hidden');
 
-    if(isHost) setTimeout(checkCompletion, 1000);
 };
 
-function checkCompletion() {
-    get(ref(db, `games/${myRoom}`)).then(snap => {
-        const d = snap.val(); if(!d || !d.answers) return;
-        if(Object.keys(d.answers).length >= Object.keys(d.players).length) {
-            const hostId = Object.keys(d.players).find(k => d.players[k].name === d.host);
-            const hAns = d.answers[hostId].val;
-            let updates = {};
-            Object.keys(d.players).forEach(pid => {
-                const pAns = d.answers[pid].val;
-                let s = (d.type === 'trivia') ? (JSON.stringify(pAns) === JSON.stringify(hAns) ? 100 : 0) : calculateRankingScore(hAns, pAns);
-                updates[`players/${pid}/score`] = Math.floor(((d.players[pid].score * (d.currRound-1)) + s) / d.currRound);
-            });
-            if (d.currRound < d.maxRounds) {
-                updates['currRound'] = d.currRound + 1; updates['answers'] = null;
-                update(ref(db, `games/${myRoom}`), updates);
-            } else update(ref(db, `games/${myRoom}`), { state: 'finished' });
-        }
+function checkCompletion(d) {
+    if(!d || !d.answers) return;
+    
+    const playerCount = Object.keys(d.players || {}).length;
+    const answerCount = Object.keys(d.answers || {}).length;
+
+    if (answerCount < playerCount) return;
+
+    const hostId = Object.keys(d.players).find(k => 
+        d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
+    );
+    
+    if (!d.answers[hostId]) return; 
+    
+    const hAns = d.answers[hostId].val;
+    let updates = {};
+
+    // CALCULATE SCORES FOR EACH PLAYER
+    Object.keys(d.players).forEach(pid => {
+        const pAns = d.answers[pid] ? d.answers[pid].val : null;
+        if (!pAns) return;
+
+        let s = (d.type === 'trivia') 
+            ? (JSON.stringify(pAns) === JSON.stringify(hAns) ? 100 : 0) 
+            : calculateRankingScore(hAns, pAns);
+        
+        const currentScore = d.players[pid].score || 0;
+        updates[`players/${pid}/score`] = Math.floor(((currentScore * (d.currRound - 1)) + s) / d.currRound);
     });
+
+    if (d.currRound < d.maxRounds) {
+        updates['currRound'] = d.currRound + 1;
+        updates['answers'] = null; 
+        update(ref(db, `games/${myRoom}`), updates);
+    } else {
+        update(ref(db, `games/${myRoom}`), { state: 'finished' });
+    }
 }
 
 function calculateRankingScore(h, p) {
