@@ -284,6 +284,7 @@ window.toggleLock = () => {
     document.querySelectorAll('.ans-radio').forEach(r => r.classList.toggle('hidden', !locked || type !== 'trivia'));
 };
 
+// CREATE & JOIN GAME WINDOW
 window.createGame = () => {
     if(!db) return; saveCurrentSlide();
     myRoom = Math.random().toString(36).substring(2,6).toUpperCase();
@@ -311,6 +312,7 @@ window.joinGame = () => {
     });
 };
 
+// CREATE & JOIN LOBBY
 function enterLobby() {
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
@@ -328,15 +330,21 @@ function enterLobby() {
         const playerList = document.getElementById('player-list');
         if (d.players) {
             const playersArr = Object.values(d.players);
-            let guestCount = 0;
+            
+            playersArr.sort((a, b) => {
+                const hostName = d.host.trim().toUpperCase();
+                return (a.name.trim().toUpperCase() === hostName) ? -1 : 1;
+            });
 
-            playersArr.sort((a, b) => (a.name === d.host) ? -1 : 1);
+            let guestCount = 0;
 
             playerList.innerHTML = playersArr.map((p) => {
                 let roleLabel = "";
                 let roleColor = "";
+                
+                const isThisPlayerHost = p.name.trim().toUpperCase() === d.host.trim().toUpperCase();
 
-                if (p.name.trim().toUpperCase() === d.host.trim().toUpperCase()) {
+                if (isThisPlayerHost) {
                     roleLabel = "HOST";
                     roleColor = "bg-indigo-600 text-white shadow-sm";
                 } else {
@@ -348,14 +356,14 @@ function enterLobby() {
                 return `
                     <li class="animate-popup flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm mb-3">
                         <div class="flex items-center gap-3">
-                             <div class="w-2 h-2 rounded-full ${p.name === d.host ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'}"></div>
+                             <div class="w-2 h-2 rounded-full ${isThisPlayerHost ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'}"></div>
                              <span class="font-black text-gray-800 dark:text-white uppercase tracking-tight">${p.name}</span>
                         </div>
                         <span class="text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${roleColor}">
-                            ${roleLabel} ${p.name === d.host ? '👑' : ''}
+                            ${roleLabel} ${isThisPlayerHost ? '👑' : ''}
                         </span>
                    </li>`;
-           }).join(''); 
+            }).join(''); 
         }
 
         if(isHost) {
