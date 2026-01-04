@@ -441,13 +441,40 @@ function startGameUI(data) {
 
 // REVEAL GUEST UI
 function revealGuestUI(data) {
-    document.getElementById('status-msg').innerText = "";
-    document.getElementById('sortable-list').classList.remove('hidden');
-    document.getElementById('trivia-grid').classList.remove('hidden');
-    if(!isHost) document.getElementById('submit-btn').classList.remove('hidden');
+    const rData = data.gameDeck[data.currRound - 1];
     
+    document.getElementById('status-msg').innerText = "";
+    document.getElementById('sortable-list').classList.remove('hidden', 'pointer-events-none', 'opacity-50');
+    document.getElementById('trivia-grid').classList.remove('hidden', 'pointer-events-none', 'opacity-50');
+    
+
     renderInputs(data); 
+
+    // Auto-lock host's pre-selected answer
+    if (isHost && rData.lockedIdx !== null && rData.lockedIdx !== undefined) {
+        let preSelectedValue;
+        
+        if (data.type === 'trivia') {
+            // Trivia
+            preSelectedValue = rData.items[rData.lockedIdx];
+        } else {
+            // Ranking
+            preSelectedValue = rData.items; 
+        }
+
+        console.log("DEBUG: Auto-locking host's pre-selected answer:", preSelectedValue);
+        
+        // Short delay to ensure the UI is fully rendered before locking
+        setTimeout(() => {
+            window.submitAnswer(preSelectedValue);
+            document.getElementById('status-msg').innerText = "Locked by Host Setup ✅";
+        }, 400);
+    } else if (!isHost) {
+        // Only show the submit button for Guests
+        document.getElementById('submit-btn').classList.remove('hidden');
+    }
 }
+
 // RENDER INPUT OPTIONS
 function renderInputs(data) {
     const list = document.getElementById('sortable-list'), grid = document.getElementById('trivia-grid');
