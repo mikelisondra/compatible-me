@@ -328,6 +328,7 @@ window.joinGame = () => {
 
 // CREATE & JOIN LOBBY
 function enterLobby() {
+    // UI hiding logic remains the same
     document.getElementById('host-panel').classList.add('hidden');
     document.getElementById('guest-panel').classList.add('hidden');
     document.getElementById('start-screen').classList.add('hidden');
@@ -337,84 +338,43 @@ function enterLobby() {
         const d = snap.val(); 
         if(!d) return;
 
-        // Re-verify host status if page refreshed
         if (myName && d.host && myName.trim().toUpperCase() === d.host.trim().toUpperCase()) {
             isHost = true;
         }
 
         document.getElementById('display-code').innerText = myRoom;
-        const lobbyTag = document.getElementById('lobby-tag');
-        if (lobbyTag) lobbyTag.innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
-
-        // AUTO-ADVANCE LOGIC: Only the host processes completion
-        if (d.state === 'playing' && d.answers) {
-            const playerCount = Object.keys(d.players || {}).length;
-            const answerCount = Object.keys(d.answers || {}).length;
-
-            if (answerCount >= playerCount && isHost) {
-                setTimeout(() => checkCompletion(d), 500);
-            }
-        }
-
-        const playerList = document.getElementById('player-list');
-        if (d.players) {
-            const playersArr = Object.values(d.players);
-            
-            // Sort: Host always first
-            playersArr.sort((a, b) => {
-                const hostName = d.host.trim().toUpperCase();
-                return (a.name.trim().toUpperCase() === hostName) ? -1 : 1;
-            });
-
-            let guestCount = 0;
-            playerList.innerHTML = playersArr.map((p) => {
-                const isThisPlayerHost = p.name.trim().toUpperCase() === d.host.trim().toUpperCase();
-                let roleLabel = "";
-                let roleColor = "";
-
-                if (isThisPlayerHost) {
-                    roleLabel = "HOST";
-                    roleColor = "bg-indigo-600 text-white shadow-sm";
-                } else {
-                    guestCount++;
-                    roleLabel = `GUEST ${guestCount}`;
-                    roleColor = "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300";
-                }
-
-                return `
-                    <li class="animate-popup flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-2xl border-2 border-gray-100 dark:border-gray-700 shadow-sm mb-3">
-                        <div class="flex items-center gap-3">
-                             <div class="w-2 h-2 rounded-full ${isThisPlayerHost ? 'bg-indigo-500 animate-pulse' : 'bg-green-500'}"></div>
-                             <span class="font-black text-gray-800 dark:text-white uppercase tracking-tight">${p.name}</span>
-                        </div>
-                        <span class="text-[10px] font-black px-3 py-1 rounded-full tracking-widest uppercase ${roleColor}">
-                            ${roleLabel} ${isThisPlayerHost ? '👑' : ''}
-                        </span>
-                    </li>`;
-            }).join(''); 
-        }
-
-        // START BUTTON & MESSAGE LOGIC
-        const startBtn = document.getElementById('start-btn');
-        const waitMsg = document.getElementById('wait-msg');
-        if(isHost) {
-            const playerCount = d.players ? Object.keys(d.players).length : 0;
-            startBtn.classList.toggle('hidden', playerCount < 2);
-            waitMsg.classList.add('hidden');
-        } else {
-            startBtn.classList.add('hidden');
-            waitMsg.classList.remove('hidden');
-        }
-    
-        // STATE HANDLERS
-        if(d.state === 'playing') { 
+        
+        if (d.state === 'playing') {
+            // If the round has changed, reset the guest's local state
             if (currentRenderedRound !== d.currRound) {
                 currentRenderedRound = d.currRound; 
+                guestHasStartedRound = false; 
                 startGameUI(d); 
-            } else {
-                handleSyncView(d);
+            }
+            
+            // Logic for Sync Mode: Wait for host to lock in
+            if (d.syncMode && !isHost && !guestHasStartedRound) {
+                const hostId = Object.keys(d.players).find(k => 
+                    d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
+                );
+                
+                // If the host has answered, reveal the UI for the guest
+                if (d.answers && d.answers[hostId]) {
+                    guestHasStartedRound = true;
+                    revealGuestUI(d);
+                }
             }
         }
+        
+        // AUTO-COMPLETION TRIGGER
+        if (d.state === 'playing' && isHost) {
+            const playerCount = Object.keys(d.players || {}).length;
+            const answerCount = Object.keys(d.answers || {}).length;
+            if (answerCount >= playerCount) {
+                setTimeout(() => checkCompletion(d), 1000);
+            }
+        }
+
         if(d.state === 'finished') showResults(d);
     });
 }
@@ -430,29 +390,42 @@ function startGameUI(data) {
     document.getElementById('lobby-screen').classList.add('hidden');
     document.getElementById('game-screen').classList.remove('hidden');
     
-    const roundObj = data.gameDeck[data.currRound - 1];
+    document.getElementById('status-msg').innerText = "";
     
-    const hostId = Object.keys(data.players).find(k => 
-        data.players[k].name.trim().toUpperCase() === data.host.trim().toUpperCase()
-    );
+    const rData = data.gameDeck[data.currRound - 1];
+    const qText = document.getElementById('q-text');
 
-    const hostHasAnswered = data.answers && data.answers[hostId];
+    if (isHost) {
+        qText.innerText = "Pick your answer!";
+        revealGuestUI(data);
+    } else {
+        const qLabel = data.simpleMode ? rData.q : `Guess ${data.host}'s Answer: ${rData.q}`;
+        qText.innerText = qLabel;
 
-    if (data.syncMode && !isHost && !hostHasAnswered) {
-        document.getElementById('q-text').innerText = `Waiting for ${data.host} to lock in...`;
-        document.getElementById('sortable-list').classList.add('hidden');
-        document.getElementById('trivia-grid').classList.add('hidden');
-        document.getElementById('submit-btn').classList.add('hidden');
-        return; 
+        if (data.syncMode) {
+            document.getElementById('sortable-list').classList.add('hidden');
+            document.getElementById('trivia-grid').classList.add('hidden');
+            document.getElementById('submit-btn').classList.add('hidden');
+            document.getElementById('status-msg').innerText = `Waiting for ${data.host} to lock in...`;
+        } else {
+            revealGuestUI(data);
+        }
     }
+}
 
-    document.getElementById('sortable-list').classList.remove('hidden');
-    document.getElementById('trivia-grid').classList.remove('hidden');
-
-    const finalQuestion = data.simpleMode ? roundObj.q : `Guess ${data.host}'s Answer: ${roundObj.q}`;
-    document.getElementById('q-text').innerText = isHost ? "Pick your answer!" : finalQuestion;
-
-    renderInputs(data);
+// REVEAL GUEST UI
+function revealGuestUI(data) {
+    document.getElementById('status-msg').innerText = "";
+    const list = document.getElementById('sortable-list');
+    const grid = document.getElementById('trivia-grid');
+    
+    
+    if(data.type === 'ranking') list.classList.remove('hidden');
+    else grid.classList.remove('hidden');
+    
+    if(!isHost) document.getElementById('submit-btn').classList.remove('hidden');
+    
+    renderInputs(data); 
 }
 
 // RENDER INPUT OPTIONS
@@ -495,38 +468,43 @@ window.submitAnswer = (val) => {
 };
 
 function checkCompletion(d) {
-    if(!d || !d.answers) return;
+    if(!d || !d.answers || !isHost) return;
     
-    const playerCount = Object.keys(d.players || {}).length;
-    const answerCount = Object.keys(d.answers || {}).length;
-
-    if (answerCount < playerCount) return;
-
-    const hostId = Object.keys(d.players).find(k => 
-        d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
-    );
+    const pIds = Object.keys(d.players);
+    const answers = d.answers;
+    const hostId = pIds.find(k => d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase());
     
-    if (!d.answers[hostId]) return; 
+    if(!answers[hostId]) return; // Host must have an answer to compare against
     
-    const hAns = d.answers[hostId].val;
+    const hostAns = answers[hostId].val;
     let updates = {};
 
-    // CALCULATE SCORES FOR EACH PLAYER
-    Object.keys(d.players).forEach(pid => {
-        const pAns = d.answers[pid] ? d.answers[pid].val : null;
-        if (!pAns) return;
-
-        let s = (d.type === 'trivia') 
-            ? (JSON.stringify(pAns) === JSON.stringify(hAns) ? 100 : 0) 
-            : calculateRankingScore(hAns, pAns);
+    pIds.forEach(pid => {
+        const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
+        let roundScore = 0;
         
-        const currentScore = d.players[pid].score || 0;
-        updates[`players/${pid}/score`] = Math.floor(((currentScore * (d.currRound - 1)) + s) / d.currRound);
+        if (pAns === "SKIPPED") {
+            roundScore = 0;
+        } else if(d.type === 'trivia') {
+            roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
+        } else {
+            let dist = 0;
+            hostAns.forEach((item, idx) => {
+                const pIdx = pAns.indexOf(item);
+                dist += Math.abs(idx - (pIdx === -1 ? hostAns.length : pIdx));
+            });
+            const max = (hostAns.length**2)/2;
+            roundScore = Math.floor(((max - dist)/max)*100);
+        }
+        
+        const oldScore = d.players[pid].score || 0;
+        const newAvg = Math.floor(((oldScore * (d.currRound - 1)) + roundScore) / d.currRound);
+        updates[`players/${pid}/score`] = newAvg;
     });
 
     if (d.currRound < d.maxRounds) {
         updates['currRound'] = d.currRound + 1;
-        updates['answers'] = null; 
+        updates['answers'] = null;
         update(ref(db, `games/${myRoom}`), updates);
     } else {
         update(ref(db, `games/${myRoom}`), { state: 'finished' });
