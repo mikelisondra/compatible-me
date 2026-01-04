@@ -492,39 +492,54 @@ function checkCompletion(d) {
     
     const pIds = Object.keys(d.players);
     const answers = d.answers;
-    const hostId = pIds.find(k => d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase());
+
+    const hostId = pIds.find(k => 
+        d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
+    );
     
-    if(!answers[hostId]) return; // Host must have an answer to compare against
+    if(!answers[hostId]) return; 
     
     const hostAns = answers[hostId].val;
     let updates = {};
 
     pIds.forEach(pid => {
+        if (pid === hostId) {
+            updates[`players/${pid}/score`] = 100;
+            return;
+        }
+
         const pAns = answers[pid] ? answers[pid].val : "SKIPPED";
         let roundScore = 0;
         
         if (pAns === "SKIPPED") {
             roundScore = 0;
         } else if(d.type === 'trivia') {
-            roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
+            // Trivia Score Logic
+            roundScore = (pAns === hostAns) ? 100 : 0;
         } else {
+            // Ranking Score Logic
             let dist = 0;
             hostAns.forEach((item, idx) => {
                 const pIdx = pAns.indexOf(item);
                 dist += Math.abs(idx - (pIdx === -1 ? hostAns.length : pIdx));
             });
+            
             const max = (hostAns.length**2)/2;
             roundScore = Math.floor(((max - dist)/max)*100);
         }
         
+        roundScore = Math.max(0, roundScore);
+
         const oldScore = d.players[pid].score || 0;
         const newAvg = Math.floor(((oldScore * (d.currRound - 1)) + roundScore) / d.currRound);
         updates[`players/${pid}/score`] = newAvg;
     });
 
+
     if (d.currRound < d.maxRounds) {
         updates['currRound'] = d.currRound + 1;
         updates['answers'] = null;
+        updates['roundData'] = d.gameDeck[d.currRound]; 
         update(ref(db, `games/${myRoom}`), updates);
     } else {
         update(ref(db, `games/${myRoom}`), { state: 'finished' });
