@@ -322,14 +322,40 @@ function enterLobby() {
         const d = snap.val(); if(!d) return;
         document.getElementById('display-code').innerText = myRoom;
         
-        document.getElementById('lobby-tag').innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
+        const lobbyTag = document.getElementById('lobby-tag');
+        if (lobbyTag) lobbyTag.innerText = isHost ? "HOSTING ROOM" : "WAITING IN LOBBY";
 
-        document.getElementById('player-list').innerHTML = Object.values(d.players).map(p => 
-            `<li class="animate-popup bg-gray-50 dark:bg-gray-700 p-2 rounded-lg border dark:border-gray-600">${p.name}</li>`
-        ).join('');
+        const playerList = document.getElementById('player-list');
+        if (d.players) {
+            const playersArr = Object.values(d.players);
+            let guestCount = 0;
+
+            playerList.innerHTML = playersArr.map((p) => {
+                let roleLabel = "";
+                let roleColor = "";
+
+                if (p.name === d.host) {
+                    roleLabel = "HOST";
+                    roleColor = "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300";
+                } else {
+                    guestCount++;
+                    roleLabel = `GUEST ${guestCount}`;
+                    roleColor = "bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400";
+                }
+
+                return `
+                    <li class="animate-popup flex items-center justify-between bg-white dark:bg-gray-800 p-4 rounded-xl border-2 border-gray-100 dark:border-gray-700 shadow-sm mb-2">
+                        <span class="font-black text-gray-800 dark:text-white uppercase tracking-tight">${p.name}</span>
+                        <span class="text-[10px] font-black px-2 py-1 rounded-md tracking-widest ${roleColor}">
+                            ${roleLabel} ${p.name === d.host ? '👑' : ''}
+                        </span>
+                    </li>`;
+            }).join('');
+        }
 
         if(isHost) {
-            document.getElementById('start-btn').classList.toggle('hidden', Object.keys(d.players).length < 2);
+            const startBtn = document.getElementById('start-btn');
+            startBtn.classList.toggle('hidden', Object.keys(d.players).length < 2);
             document.getElementById('wait-msg').classList.add('hidden');
         } else {
             document.getElementById('start-btn').classList.add('hidden');
