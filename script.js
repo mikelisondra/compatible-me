@@ -473,7 +473,8 @@ function renderInputs(data) {
 // SUBMIT ANSWER
 window.submitAnswer = (val) => {
     if(!val) {
-        val = Array.from(document.querySelectorAll('#sortable-list li')).map(li => li.dataset.value || li.innerText);
+        val = Array.from(document.querySelectorAll('#sortable-list li'))
+                   .map(li => (li.dataset.value || li.innerText).trim());
     }
     
     update(ref(db, `games/${myRoom}/answers/${myId}`), { val });
@@ -484,7 +485,6 @@ window.submitAnswer = (val) => {
     document.getElementById('sortable-list').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('trivia-grid').classList.add('pointer-events-none', 'opacity-50');
     document.getElementById('submit-btn').classList.add('hidden');
-
 };
 
 window.checkCompletion = (d) => {
@@ -494,21 +494,23 @@ window.checkCompletion = (d) => {
     const answers = d.answers;
 
     let hostId = pIds.find(k => 
-        d.players[k].name.trim().toUpperCase() === d.host.trim().toUpperCase()
-    ) || pIds[0]; 
+        String(d.players[k].name).trim().toUpperCase() === String(d.host).trim().toUpperCase()
+    );
+    
+    if(!hostId) hostId = pIds[0]; 
     
     if(!answers[hostId]) return; 
     
-    // Clean Host Answer (Remove hidden spaces/newlines)
-    const hostAns = Array.isArray(answers[hostId].val) 
-        ? answers[hostId].val.map(s => String(s).trim()) 
-        : String(answers[hostId].val).trim();
+    const hostVal = answers[hostId].val;
+    const hostAns = Array.isArray(hostVal) 
+        ? hostVal.map(s => String(s).trim()) 
+        : String(hostVal).trim();
 
     let updates = {};
 
     pIds.forEach(pid => {
-        // Clean Guest Answer
         const rawAns = answers[pid] ? answers[pid].val : "SKIPPED";
+        
         const pAns = Array.isArray(rawAns) 
             ? rawAns.map(s => String(s).trim()) 
             : String(rawAns).trim();
@@ -518,28 +520,30 @@ window.checkCompletion = (d) => {
         if (pAns === "SKIPPED") {
             roundScore = 0;
         } else if(d.type === 'trivia') {
-            // Trivia Match: Compare as cleaned strings
-            roundScore = (pAns === hostAns) ? 100 : 0;
+            // Trivia Score Logic
+            roundScore = (JSON.stringify(pAns) === JSON.stringify(hostAns)) ? 100 : 0;
         } else {
-            // Ranking Score logic
+            // Ranking Score Logic
             let dist = 0;
-            hostAns.forEach((item, idx) => {
-                const pIdx = pAns.indexOf(item);
-                // If item not found, use max distance
-                dist += Math.abs(idx - (pIdx === -1 ? hostAns.length : pIdx));
+            const hArr = Array.isArray(hostAns) ? hostAns : [];
+            const pArr = Array.isArray(pAns) ? pAns : [];
+            
+            hArr.forEach((item, idx) => {
+                const pIdx = pArr.indexOf(item);
+                // If item isn't found, calculate distance from the end of the list
+                dist += Math.abs(idx - (pIdx === -1 ? hArr.length : pIdx));
             });
-            const max = (hostAns.length ** 2) / 2;
-            roundScore = Math.floor(((max - dist) / max) * 100);
+            const max = (hArr.length ** 2) / 2;
+            roundScore = max > 0 ? Math.floor(((max - dist) / max) * 100) : 0;
         }
         
-        // Ensure score isn't negative
-        roundScore = Math.max(0, roundScore);
-
+        // Update cumulative average score
         const currentScore = d.players[pid].score || 0;
-        updates[`players/${pid}/score`] = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
+        const newAvg = Math.floor(((currentScore * (d.currRound - 1)) + roundScore) / d.currRound);
+        updates[`players/${pid}/score`] = Math.max(0, newAvg);
     });
 
-    // Advance Round
+    // 2. ADVANCE THE GAME STATE
     if (d.currRound < d.maxRounds) {
         updates['currRound'] = d.currRound + 1;
         updates['answers'] = null; 
@@ -550,11 +554,6 @@ window.checkCompletion = (d) => {
     }
 };
 
-function calculateRankingScore(h, p) {
-    let dist = 0; h.forEach((item, i) => dist += Math.abs(i - p.indexOf(item)));
-    const max = (h.length**2)/2; return Math.floor(((max-dist)/max)*100);
-}
-
 window.showResults = (data) => {
     document.getElementById('game-screen').classList.add('hidden');
     document.getElementById('result-screen').classList.remove('hidden');
@@ -563,7 +562,7 @@ window.showResults = (data) => {
     // Case-insensitive filtering to find guests
     const hostName = data.host.trim().toUpperCase();
     const guests = Object.values(data.players)
-        .filter(p => p.name.trim().toUpperCase() !== hostName)
+        .filter(p => (p.name || "").trim().toUpperCase() !== hostName)
         .sort((a,b) => b.score - a.score);
     
     const pass = (data.diff === 'standard') ? parseInt(data.target) : 25;
