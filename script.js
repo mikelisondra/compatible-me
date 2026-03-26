@@ -737,12 +737,36 @@ window.showResults = (data) => {
         document.getElementById('emoji-1v1').innerText = win ? "💖" : (data.diff === 'standard' ? "💔😭" : "💔");
         if(win && typeof confetti === 'function') confetti();
     } else {
+        // PARTY MODE LOGIC
         document.getElementById('res-party').classList.remove('hidden');
+        
+        // EVENT RESULT
+        if (guests.length > 0) {
+            // Find the highest score on the leaderboard
+            const topScore = guests[0].score;
+            
+            // Find THIS player in the guest list
+            const me = guests.find(g => g.name.trim().toUpperCase() === myName.trim().toUpperCase());
+            
+            if (me) {
+                // If my score matches the top score (and isn't 0), I'm a winner!
+                const iWon = me.score === topScore && topScore > 0;
+                
+                if (iWon) {
+                    playSound('win');
+                    if (typeof confetti === 'function') confetti();
+                } else {
+                    playSound('fail');
+                }
+            }
+        }
+
+        // RENDER LEADERBOARD
         document.getElementById('leaderboard').innerHTML = guests.map((p, i) => {
             const medal = i===0 ? "🥇" : i===1 ? "🥈" : i===2 ? "🥉" : "";
-            const rankStyle = i===0 ? "rank-gold" : i===1 ? "rank-silver" : i===2 ? "rank-bronze" : "bg-gray-50";
-            return `<div class="flex justify-between p-4 border-2 rounded-xl mb-2 ${rankStyle}">
-                <span>${medal} #${i+1} ${p.name} ${p.score>=pass?'❤️':'💔'}</span>
+            const rankStyle = i===0 ? "rank-gold" : i===1 ? "rank-silver" : i===2 ? "rank-bronze" : "bg-gray-50 dark:bg-gray-700";
+            return `<div class="flex justify-between p-4 border-2 rounded-xl mb-2 ${rankStyle} animate-popup" style="animation-delay: ${i * 0.1}s">
+                <span class="font-bold">${medal} #${i+1} ${p.name} ${p.score>=pass?'❤️':'💔'}</span>
                 <span class="${p.score>=pass?'text-green-600':'text-red-500'} font-black">${p.score}%</span>
             </div>`;
         }).join('');
@@ -824,4 +848,3 @@ window.runMasterTimer = (initialTime) => {
         }
     }, 1000);
 };
-
