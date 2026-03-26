@@ -358,11 +358,34 @@ window.createGame = () => {
 };
 
 window.joinGame = () => {
-    myRoom = document.getElementById('room-code').value.toUpperCase();
+    const roomInput = document.getElementById('room-code').value.toUpperCase();
+    const userInp = document.getElementById('username').value;
+    
+    if(!userInp) return alert("Enter Nickname First!");
+    if(!roomInput) return alert("Enter Room Code!");
+
+    myRoom = roomInput;
+    myName = userInp; // Ensure myName is set for the sound logic later!
+
     get(ref(db, `games/${myRoom}`)).then(snap => {
         if(snap.exists()) {
-            update(ref(db, `games/${myRoom}/players/${myId}`), { name: document.getElementById('username').value, score: 0 });
+            const data = snap.val();
+            
+            // SECURITY CHECK: Block if game is already in progress or finished
+            if(data.state !== 'lobby') {
+                playSound('fail');
+                alert("SORRY! 🚫 This game has already started or ended. You can't join mid-way.");
+                return;
+            }
+
+            // If it's still in lobby, let them in
+            update(ref(db, `games/${myRoom}/players/${myId}`), { 
+                name: myName, 
+                score: 0 
+            });
             enterLobby();
+        } else {
+            alert("Room not found! 🔍 Check the code again.");
         }
     });
 };
