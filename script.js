@@ -462,24 +462,28 @@ function enterLobby() {
         }
 
         if (d.state === 'playing' && isHost && d.answers) {
-            const totalPlayers = Object.keys(d.players).length;
-            const totalAnswers = Object.keys(d.answers).length;
+            const playerIds = Object.keys(d.players);
+            const answerIds = Object.keys(d.answers);
 
-            // IF EVERYONE HAS ANSWERED
-            if (totalAnswers >= totalPlayers) {
-                // 1. Kill the timer immediately
+            // DEBUG: See exactly who the code is waiting for in your console
+            console.log(`Waiting for: ${playerIds.length - answerIds.length} more players.`);
+
+            // If everyone who is currently in the room has answered
+            if (answerIds.length >= playerIds.length) {
                 if (countdownInterval) {
                     clearInterval(countdownInterval);
                     countdownInterval = null;
                 }
-                // 2. Clear the timer in the database so Guests see it stop
-                update(ref(db, `games/${myRoom}`), { timer: 0 });
                 
-                // 3. Trigger the results calculation
-                checkCompletion(d);
+                // Safety: If no timer is set, trigger completion immediately
+                if (!d.timerSetting || d.timerSetting === "0") {
+                    checkCompletion(d);
+                } else {
+                    // If there IS a timer, give it a tiny delay for visual polish
+                    setTimeout(() => checkCompletion(d), 500);
+                }
             }
         }
-
         const startBtn = document.getElementById('start-btn');
         if(isHost) {
             const playerCount = d.players ? Object.keys(d.players).length : 0;
@@ -763,18 +767,13 @@ window.showResults = (data) => {
         // PARTY MODE LOGIC
         document.getElementById('res-party').classList.remove('hidden');
         
-        // EVENT RESULT
+        // EVENT RESULT - SOUND & CONFETTI
         if (guests.length > 0) {
-            // Find the highest score on the leaderboard
             const topScore = guests[0].score;
-            
-            // Find THIS player in the guest list
             const me = guests.find(g => g.name.trim().toUpperCase() === myName.trim().toUpperCase());
             
             if (me) {
-                // If my score matches the top score (and isn't 0), I'm a winner!
                 const iWon = me.score === topScore && topScore > 0;
-                
                 if (iWon) {
                     playSound('win');
                     if (typeof confetti === 'function') confetti();
