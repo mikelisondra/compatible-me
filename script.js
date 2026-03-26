@@ -365,25 +365,25 @@ window.joinGame = () => {
     if(!roomInput) return alert("Enter Room Code!");
 
     myRoom = roomInput;
-    myName = userInp; // Ensure myName is set for the sound logic later!
+    myName = userInp;
 
     get(ref(db, `games/${myRoom}`)).then(snap => {
         if(snap.exists()) {
             const data = snap.val();
-            
-            // SECURITY CHECK: Block if game is already in progress or finished
-            if(data.state !== 'lobby') {
-                playSound('fail');
-                alert("SORRY! 🚫 This game has already started or ended. You can't join mid-way.");
-                return;
-            }
+            // Check if THIS specific device ID is already a registered player in this room
+            const isAlreadyRegistered = data.players && data.players[myId];
 
-            // If it's still in lobby, let them in
-            update(ref(db, `games/${myRoom}/players/${myId}`), { 
-                name: myName, 
-                score: 0 
-            });
-            enterLobby();
+            if(data.state === 'lobby' || isAlreadyRegistered) {
+                update(ref(db, `games/${myRoom}/players/${myId}`), { 
+                    name: myName, 
+                    score: isAlreadyRegistered ? data.players[myId].score : 0 
+                });
+                enterLobby();
+            } else {
+                // BLOCK entry if it's a completely new player trying to join mid-game
+                playSound('fail');
+                alert("SORRY! 🚫 This game is already in progress. New players cannot join mid-way.");
+            }
         } else {
             alert("Room not found! 🔍 Check the code again.");
         }
