@@ -423,10 +423,23 @@ function enterLobby() {
                 }
             }
         }
-   
+
         if (d.state === 'playing' && isHost && d.answers) {
-            if (Object.keys(d.answers).length >= Object.keys(d.players).length) {
-                setTimeout(() => checkCompletion(d), 1000);
+            const totalPlayers = Object.keys(d.players).length;
+            const totalAnswers = Object.keys(d.answers).length;
+
+            // IF EVERYONE HAS ANSWERED
+            if (totalAnswers >= totalPlayers) {
+                // 1. Kill the timer immediately
+                if (countdownInterval) {
+                    clearInterval(countdownInterval);
+                    countdownInterval = null;
+                }
+                // 2. Clear the timer in the database so Guests see it stop
+                update(ref(db, `games/${myRoom}`), { timer: 0 });
+                
+                // 3. Trigger the results calculation
+                checkCompletion(d);
             }
         }
 
@@ -785,11 +798,16 @@ window.runMasterTimer = (initialTime) => {
 
         if (timeLeft <= 0) {
             clearInterval(countdownInterval);
-            update(gameRef, { timer: 0 }).then(() => {
-                get(gameRef).then((snap) => {
-                    if(snap.exists()) checkCompletion(snap.val());
-                });
+            countdownInterval = null; 
+            
+            // Only trigger completion if the game hasn't already moved to the next state
+            get(gameRef).then((snap) => {
+                const currentData = snap.val();
+                if (currentData && currentData.state === 'playing') {
+                    checkCompletion(currentData);
+                }
             });
         }
     }, 1000);
 };
+
