@@ -218,14 +218,37 @@ window.setDiff = (d) => {
 };
 
 window.toggleCustomInputs = () => {
-    const isCustom = document.getElementById('topic-source').value === 'custom';
-    document.getElementById('custom-inputs').classList.toggle('hidden', !isCustom);
-    if(isCustom) {
-        const rounds = parseInt(document.getElementById('round-setting').value);
-        customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
-        currentEditRound = 1; renderSlide();
-        if(!setupSortable) setupSortable = new Sortable(document.getElementById('setup-list'), { animation: 150, handle: '.drag-handle' });
+    const src = document.getElementById('topic-source').value;
+    const box = document.getElementById('custom-inputs');
+    const rounds = parseInt(document.getElementById('round-setting').value);
+
+    if (src === 'custom') {
+        box.classList.remove('hidden');
+        
+        // Only create a new array if it's empty or resize it if the round count increased. 
+        if (customDeckData.length === 0) {
+            customDeckData = new Array(rounds).fill(null).map(() => ({ q: "", items: ["","","","",""], lockedIdx: null }));
+        } else if (customDeckData.length !== rounds) {
+            // If rounds increased, add new blank slides. If decreased, keep the first X slides.
+            let newData = new Array(rounds).fill(null).map((_, i) => {
+                return customDeckData[i] || { q: "", items: ["","","","",""], lockedIdx: null };
+            });
+            customDeckData = newData;
+        }
+
+        if (currentEditRound > rounds) currentEditRound = rounds;
+        
+        renderSlide();
+
+        if (!setupSortable) {
+            setupSortable = new Sortable(document.getElementById('setup-list'), {
+                animation: 150, handle: '.drag-handle', ghostClass: 'bg-indigo-50', delay: 100, delayOnTouchOnly: true
+            });
+        }
+    } else {
+        box.classList.add('hidden');
     }
+    playSound('click');
 };
 
 function renderSlide() {
