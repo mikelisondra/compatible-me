@@ -255,13 +255,24 @@ function renderSlide() {
     const total = parseInt(document.getElementById('round-setting').value);
     if (currentEditRound > total) currentEditRound = total;
     if (currentEditRound < 1) currentEditRound = 1;
+    
     const data = customDeckData[currentEditRound - 1];
     document.getElementById('slide-counter').innerText = `ROUND ${currentEditRound} / ${total}`;
     document.getElementById('slide-q').value = data.q || "";
+    
     const inps = document.querySelectorAll('.slide-item');
     inps.forEach((inp, i) => inp.value = data.items[i] || "");
+
+    // FIX: Update the radio buttons based on the saved data for the round
+    const radios = document.querySelectorAll('input[name="correct-ans"]');
+    radios.forEach((radio, index) => {
+        // Only check it if data.lockedIdx matches this radio's value index
+        radio.checked = (data.lockedIdx !== null && parseInt(data.lockedIdx) === index);
+    });
+
     document.getElementById('slide-lock').checked = (data.lockedIdx !== null);
     toggleLock();
+
     const btnNext = document.getElementById('btn-next'), btnFinish = document.getElementById('btn-finish');
     if (currentEditRound === total) {
         btnNext.classList.add('hidden'); btnFinish.classList.remove('hidden');
@@ -293,10 +304,13 @@ window.finishCustomSetup = () => {
 function saveCurrentSlide() {
     const q = document.getElementById('slide-q').value;
     const items = Array.from(document.querySelectorAll('.slide-item')).map(i => i.value).filter(v => v.trim());
+    
     let lockedIdx = null;
     if(document.getElementById('slide-lock').checked) {
         const type = document.getElementById('game-type').value;
-        lockedIdx = (type === 'trivia') ? (document.querySelector('input[name="correct-ans"]:checked')?.value || 0) : -1;
+        // FIX: Find exactly which radio is checked on the screen right now
+        const selectedRadio = document.querySelector('input[name="correct-ans"]:checked');
+        lockedIdx = (type === 'trivia') ? (selectedRadio ? parseInt(selectedRadio.value) : 0) : -1;
     }
     customDeckData[currentEditRound-1] = { q, items, lockedIdx };
 }
