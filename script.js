@@ -704,19 +704,37 @@ window.checkCompletion = (d) => {
             
             console.log(`DEBUG: Comparing Guest (${pStr}) to Host (${hStr})`);
             roundScore = (pStr === hStr) ? 100 : 0;
-        } else {
 
+        } else {
+            // Ranking Logic
             let dist = 0;
             const hArr = Array.isArray(hostAns) ? hostAns : [];
             const pArr = Array.isArray(pAns) ? pAns : [];
+            const n = hArr.length;
 
-            hArr.forEach((item, idx) => {
-                const pIdx = pArr.indexOf(item);
-                dist += Math.abs(idx - (pIdx === -1 ? hArr.length : pIdx));
-            });
-            
-            const max = (hArr.length ** 2) / 2;
-            roundScore = max > 0 ? Math.floor(((max - dist) / max) * 100) : 0;
+            if (n > 1) {
+                hArr.forEach((item, idx) => {
+                    const pIdx = pArr.indexOf(item);
+                    // If guest item is missing, treat it as maximum possible distance
+                    const displacement = (pIdx === -1) ? n : Math.abs(idx - pIdx);
+                    dist += displacement;
+                });
+
+                // Calculate actual maximum displacement possible for 'n' items
+                const maxDist = Math.floor((n * n) / 2);
+                
+                // Calculate score based on proximity
+                let scoreCalc = Math.floor(((maxDist - dist) / maxDist) * 100);
+                
+                // Safety clamp: Ensure score stays between 0 and 100
+                roundScore = Math.max(0, Math.min(100, scoreCalc));
+                
+                // Perfection check
+                if (dist === 0) roundScore = 100;
+            } else {
+                // Fallback for 1-item lists (which shouldn't happen, but just in case)
+                roundScore = (pArr[0] === hArr[0]) ? 100 : 0;
+            }
         }
 
         const currentScore = d.players[pid].score || 0;
